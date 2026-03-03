@@ -114,6 +114,18 @@ class ChartWidget(QWidget):
 
     def draw_pie(self, labels, values, title):
         self.canvas.ax.clear()
+
+        # Handle empty data or zero sum
+        if not values or sum(values) == 0:
+            self.canvas.ax.text(0.5, 0.5, 'No Data Available', 
+                                horizontalalignment='center',
+                                verticalalignment='center',
+                                transform=self.canvas.ax.transAxes,
+                                color='#94a3b8', fontsize=12, style='italic')
+            self.canvas.ax.set_title(title, color='#475569', fontsize=10, fontweight='bold', pad=20)
+            self.canvas.draw()
+            return
+
         # Modern, vibrant palette
         colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
         

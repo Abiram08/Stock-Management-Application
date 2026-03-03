@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                              QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QFrame)
 from PySide6.QtCore import Qt
 from database.models import Supplier
@@ -30,6 +30,13 @@ class SupplierManagementView(QWidget):
         header_layout.addLayout(title_container)
         
         header_layout.addStretch()
+        
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search suppliers...")
+        self.search_input.setFixedWidth(250)
+        self.search_input.textChanged.connect(self.filter_data)
+        header_layout.addWidget(self.search_input)
+        
         self.btn_register = QPushButton("+ Register New Supplier")
         self.btn_register.setProperty("class", "PrimaryButton")
         self.btn_register.clicked.connect(self.show_register_supplier)
@@ -98,6 +105,19 @@ class SupplierManagementView(QWidget):
     def load_data(self):
         from database.models import Material
         suppliers = Supplier.select()
+        self.all_suppliers = list(suppliers)
+        self.display_suppliers(self.all_suppliers)
+
+    def filter_data(self):
+        term = self.search_input.text().lower()
+        filtered = [s for s in self.all_suppliers if 
+                    term in s.name.lower() or 
+                    term in (s.contact_person or '').lower() or 
+                    term in (s.gst_no or '').lower()]
+        self.display_suppliers(filtered)
+
+    def display_suppliers(self, suppliers):
+        from database.models import Material
         self.supplier_table.setRowCount(len(suppliers))
         self.supplier_data = list(suppliers) # Keep for reference
         for i, s in enumerate(suppliers):

@@ -6,6 +6,9 @@ from PySide6.QtGui import QPixmap, QTransform
 from PySide6.QtCore import Qt
 from database.models import CompanyProfile, db
 from services.communication_service import relay
+from services.validators import (validate_required, validate_gst, validate_email, 
+                                  validate_phone, validate_positive_float, 
+                                  validate_percentage, collect_errors)
 
 class ProfileView(QWidget):
     def __init__(self):
@@ -42,20 +45,29 @@ class ProfileView(QWidget):
         self.name_input = QLineEdit()
         self.address_input = QLineEdit()
         self.gstin_input = QLineEdit()
+        self.gstin_input.setMaxLength(15)
+        # Auto-uppercase GSTIN input
+        self.gstin_input.textChanged.connect(
+            lambda text: self.gstin_input.setText(text.upper()) if text != text.upper() else None
+        )
         self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("e.g. accounts@texknit.com")
         self.phone_input = QLineEdit()
+        self.phone_input.setPlaceholderText("e.g. 9876543210 or +91 9876543210")
         self.tax_input = QLineEdit()
+        self.tax_input.setPlaceholderText("0 - 100")
         self.late_fee_input = QLineEdit()
+        self.late_fee_input.setPlaceholderText("e.g. 100.00")
         
         for inp in [self.name_input, self.address_input, self.gstin_input, self.email_input, self.phone_input, self.tax_input, self.late_fee_input]:
             inp.setMinimumHeight(45)
             inp.setStyleSheet("border: 1px solid #CBD5E1; border-radius: 8px; padding: 0 12px;")
 
-        form_layout.addRow("<b>Company Name</b>", self.name_input)
-        form_layout.addRow("<b>Address</b>", self.address_input)
+        form_layout.addRow("<b>Company Name *</b>", self.name_input)
+        form_layout.addRow("<b>Address *</b>", self.address_input)
         form_layout.addRow("<b>GSTIN</b>", self.gstin_input)
         form_layout.addRow("<b>Email</b>", self.email_input)
-        form_layout.addRow("<b>Phone</b>", self.phone_input)
+        form_layout.addRow("<b>Phone *</b>", self.phone_input)
         form_layout.addRow("<b>Default Sales Tax (%)</b>", self.tax_input)
         form_layout.addRow("<b>Daily Late Fee (INR)</b>", self.late_fee_input)
         
@@ -163,24 +175,42 @@ class ProfileView(QWidget):
             self.logo_preview.setText("Invalid Image")
 
     def save(self):
+        name = self.name_input.text().strip()
+        address = self.address_input.text().strip()
+        gstin = self.gstin_input.text().strip()
+        email = self.email_input.text().strip()
+        phone = self.phone_input.text().strip()
+
+        # Validate numeric fields
+        tax_valid, tax_msg, tax_val = validate_percentage(self.tax_input.text(), "Sales Tax (%)")
+        fee_valid, fee_msg, fee_val = validate_positive_float(self.late_fee_input.text(), "Daily Late Fee")
+
+        all_valid, error_msg = collect_errors([
+            validate_required(name, "Company Name"),
+            validate_required(address, "Address"),
+            validate_gst(gstin),
+            validate_email(email),
+            validate_required(phone, "Phone"),
+            validate_phone(phone),
+            (tax_valid, tax_msg),
+            (fee_valid, fee_msg),
+        ])
+
+        if not all_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
+            return
+
         profile = CompanyProfile.get_or_none()
         if not profile:
             profile = CompanyProfile()
             
-        profile.name = self.name_input.text()
-        profile.address = self.address_input.text()
-        profile.gstin = self.gstin_input.text()
-        profile.email = self.email_input.text()
-        profile.phone = self.phone_input.text()
-        try:
-            profile.default_tax_rate = float(self.tax_input.text())
-        except ValueError:
-            profile.default_tax_rate = 18.0
-            
-        try:
-            profile.daily_late_fee = float(self.late_fee_input.text())
-        except ValueError:
-            profile.daily_late_fee = 0.0
+        profile.name = name
+        profile.address = address
+        profile.gstin = gstin.upper() if gstin else ""
+        profile.email = email
+        profile.phone = phone
+        profile.default_tax_rate = tax_val if tax_val is not None else 18.0
+        profile.daily_late_fee = fee_val if fee_val is not None else 0.0
         
         if self.selected_logo_path:
             import time

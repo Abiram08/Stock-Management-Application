@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QPushButton, QStackedWidget, QLabel, QFrame, QMessageBox)
-from PySide6.QtCore import Qt
+                             QPushButton, QStackedWidget, QLabel, QFrame, QMessageBox, QApplication)
+from PySide6.QtCore import Qt, Signal
 
 from ui.inventory_management import InventoryManagementView
 from ui.mrs_workflow import MRSWorkflowView
@@ -9,6 +9,7 @@ from ui.analytics_view import AnalyticsView
 from ui.supplier_management import SupplierManagementView
 
 class MainWindow(QMainWindow):
+    logout_signal = Signal()  # Signal to return to login screen
     def __init__(self, user):
         super().__init__()
         self.user = user
@@ -69,6 +70,9 @@ class MainWindow(QMainWindow):
         
         self.btn_suppliers = self.create_nav_btn("  Suppliers")
         self.nav_buttons.append(self.btn_suppliers)
+        
+        self.btn_procurement = self.create_nav_btn("  Procurement")
+        self.nav_buttons.append(self.btn_procurement)
         
         for btn in self.nav_buttons:
             sidebar_layout.addWidget(btn)
@@ -193,6 +197,7 @@ class MainWindow(QMainWindow):
         from ui.consumer_management import ConsumerManagementView
         self.consumers_view = ConsumerManagementView(self.user)
         self.suppliers_view = SupplierManagementView()
+        self.procurement_view = ProcurementManagerView(self.user)
         from ui.profile_view import ProfileView
         self.profile_view = ProfileView()
         
@@ -201,6 +206,7 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(self.mrs_view)
         self.content_stack.addWidget(self.consumers_view)
         self.content_stack.addWidget(self.suppliers_view)
+        self.content_stack.addWidget(self.procurement_view)
         self.content_stack.addWidget(self.profile_view)
         
         cl_layout.addWidget(self.content_stack)
@@ -232,9 +238,5 @@ class MainWindow(QMainWindow):
         confirm = QMessageBox.question(self, "Logout", "Are you sure you want to logout?", 
                                      QMessageBox.Yes | QMessageBox.No)
         if confirm == QMessageBox.Yes:
-            # Simple way to logout: restart application process logic or just close
-            # In our ConsultancyApp structure, we can emit a signal or just quit
-            from PySide6.QtWidgets import QApplication
-            QApplication.quit()
-            # Note: The main.py will need to handle re-showing login if we wanted a seamless return
-            # but usually for desktop quit is standard logout.
+            self.logout_signal.emit()
+            self.close()

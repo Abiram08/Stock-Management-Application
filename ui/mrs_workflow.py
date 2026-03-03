@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, QDate
 from services.mrs_service import MRSService
 from services.inventory_service import InventoryService
 from services.communication_service import relay
+from services.validators import validate_required, validate_batch_id, validate_gst, validate_positive_float, collect_errors
 from database.models import Consumer
 from ui.mrs_issue_dialog import MRSIssueDialog
 from ui.components.status_badge import StatusBadge
@@ -136,9 +137,14 @@ class MRSWorkflowView(QWidget):
 
         # New: GSTIN
         self.gstin_input = QLineEdit()
-        self.gstin_input.setPlaceholderText("Enter GSTIN if applicable")
+        self.gstin_input.setPlaceholderText("e.g. 33AAAAA0000A1Z5")
         self.gstin_input.setMinimumHeight(36)
+        self.gstin_input.setMaxLength(15)
         self.gstin_input.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white;")
+        # Auto-uppercase GSTIN input
+        self.gstin_input.textChanged.connect(
+            lambda text: self.gstin_input.setText(text.upper()) if text != text.upper() else None
+        )
 
         # Row 2: Address & GSTIN
         addr_lbl = QLabel("ADDRESS")
@@ -304,13 +310,22 @@ class MRSWorkflowView(QWidget):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         
+        # Search bar for invoice history
+        search_layout = QHBoxLayout()
+        self.invoice_search = QLineEdit()
+        self.invoice_search.setPlaceholderText("Search by invoice #, batch ID, or client name...")
+        self.invoice_search.setMinimumHeight(36)
+        self.invoice_search.textChanged.connect(self.filter_invoices)
+        search_layout.addWidget(self.invoice_search)
+        layout.addLayout(search_layout)
+        
         self.invoice_table = QTableWidget()
         headers = ["Invoice #", "Batch Ref", "Date", "Total Amount", "Status", "Due Date", "Days Overdue", "Action"]
         self.invoice_table.setColumnCount(len(headers))
         self.invoice_table.setHorizontalHeaderLabels(headers)
         self.invoice_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.invoice_table.verticalHeader().setVisible(False)
-        self.invoice_table.verticalHeader().setDefaultSectionSize(52) # Better row height
+        self.invoice_table.verticalHeader().setDefaultSectionSize(52)
         self.invoice_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.invoice_table.setStyleSheet("QTableWidget { border: none; background: white; gridline-color: #f1f5f9; }")
         
@@ -319,7 +334,18 @@ class MRSWorkflowView(QWidget):
 
     def load_invoice_history(self):
         from services.invoice_service import InvoiceService
-        invoices = InvoiceService.get_all_invoices()
+        self.all_invoices = list(InvoiceService.get_all_invoices())
+        self.display_invoices(self.all_invoices)
+
+    def filter_invoices(self):
+        term = self.invoice_search.text().lower()
+        filtered = [inv for inv in self.all_invoices if
+                    term in inv.invoice_no.lower() or
+                    term in inv.mrs.batch_id.lower() or
+                    term in (inv.client_name or '').lower()]
+        self.display_invoices(filtered)
+
+    def display_invoices(self, invoices):
         self.invoice_table.setRowCount(len(invoices))
         for i, inv in enumerate(invoices):
             self.invoice_table.setItem(i, 0, QTableWidgetItem(inv.invoice_no))
@@ -425,25 +451,64 @@ class MRSWorkflowView(QWidget):
             msg.exec()
 
     def submit_request(self, generate_invoice=False):
-        batch_id = self.batch_input.text()
-        client_name = self.client_input.text()
-        client_address = self.address_input.text()
-        client_gstin = self.gstin_input.text()
+        batch_id = self.batch_input.text().strip()
+        client_name = self.client_input.text().strip()
+        client_address = self.address_input.text().strip()
+        client_gstin = self.gstin_input.text().strip()
         due_date = self.due_date_input.date().toPython()
-        if not batch_id:
-            QMessageBox.warning(self, "Error", "Batch ID is required")
-            return
-            
+
+        # Validate header fields
+        validations = [
+            validate_batch_id(batch_id),
+            validate_required(client_name, "Customer Name"),
+            validate_gst(client_gstin),
+        ]
+
+        # Validate item rows
         items = []
-        for r in self.rows:
+        has_valid_item = False
+        for i, r in enumerate(self.rows):
             mid = r['combo'].currentData()
-            qty = r['qty'].text()
-            if mid and qty:
-                items.append({'material_id': mid, 'quantity_requested': float(qty)})
-        
-        if not items:
-            QMessageBox.warning(self, "Error", "Add at least one material")
+            qty_text = r['qty'].text().strip()
+            if not mid and not qty_text:
+                continue  # Skip fully empty rows
+            if mid and qty_text:
+                qty_valid, qty_msg, qty_val = validate_positive_float(qty_text, f"Item {i+1} Quantity", allow_zero=False)
+                if not qty_valid:
+                    validations.append((False, qty_msg))
+                else:
+                    items.append({'material_id': mid, 'quantity_requested': qty_val})
+                    has_valid_item = True
+            elif mid and not qty_text:
+                validations.append((False, f"Item {i+1}: Quantity is required."))
+            elif not mid and qty_text:
+                validations.append((False, f"Item {i+1}: Please select a material."))
+
+        if not has_valid_item:
+            validations.append((False, "Add at least one material with a valid quantity."))
+
+        all_valid, error_msg = collect_errors(validations)
+        if not all_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
             return
+
+        # Check for zero-price items and warn
+        zero_price_items = []
+        for it in items:
+            mat = InventoryService.get_material_details(it['material_id'])
+            if mat and mat.unit_cost == 0:
+                zero_price_items.append(mat.name)
+        
+        if zero_price_items:
+            names = ", ".join(zero_price_items)
+            confirm = QMessageBox.question(
+                self, "Zero Price Warning",
+                f"The following items have ₹0 unit cost:\n{names}\n\n"
+                "The invoice will show ₹0 for these items. Continue anyway?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if confirm != QMessageBox.Yes:
+                return
             
         try:
             mrs = MRSService.create_mrs(self.user.id, batch_id, items)
@@ -468,7 +533,6 @@ class MRSWorkflowView(QWidget):
             for r in self.rows: r['row'].deleteLater()
             self.rows = []
             self.add_item_row()
-            # self.load_data() # Not needed for legacy tracking table
             
             if generate_invoice:
                 self.show_invoice_dialog(mrs, client_name=client_name, client_address=client_address, client_gstin=client_gstin, due_date=due_date)

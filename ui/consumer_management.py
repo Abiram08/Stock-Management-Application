@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt
 from database.models import Consumer
 from services.communication_service import relay
+from services.validators import validate_required, validate_phone, validate_gst, collect_errors
 
 class ConsumerFormDialog(QDialog):
     def __init__(self, consumer=None, parent=None):
@@ -29,20 +30,25 @@ class ConsumerFormDialog(QDialog):
         if self.consumer: self.person_input.setText(self.consumer.contact_person)
         
         self.phone_input = QLineEdit()
-        self.phone_input.setPlaceholderText("Mobile / Contact number")
+        self.phone_input.setPlaceholderText("e.g. 9876543210 or +91 9876543210")
         if self.consumer: self.phone_input.setText(self.consumer.phone)
         
         self.gst_input = QLineEdit()
-        self.gst_input.setPlaceholderText("GST No (Optional)")
-        if self.consumer: self.gst_input.setText(self.consumer.gst_no)
+        self.gst_input.setPlaceholderText("e.g. 33AAAAA0000A1Z5 (Optional)")
+        self.gst_input.setMaxLength(15)
+        # Auto-uppercase GST input
+        self.gst_input.textChanged.connect(
+            lambda text: self.gst_input.setText(text.upper()) if text != text.upper() else None
+        )
+        if self.consumer: self.gst_input.setText(self.consumer.gst_no or "")
         
         self.location_input = QLineEdit()
         self.location_input.setPlaceholderText("City / Region / Location")
-        if self.consumer: self.location_input.setText(self.consumer.location)
+        if self.consumer: self.location_input.setText(self.consumer.location or "")
         
-        form_layout.addRow("Company Name:", self.name_input)
-        form_layout.addRow("Contact Person:", self.person_input)
-        form_layout.addRow("Phone Number:", self.phone_input)
+        form_layout.addRow("Company Name *:", self.name_input)
+        form_layout.addRow("Contact Person *:", self.person_input)
+        form_layout.addRow("Phone Number *:", self.phone_input)
         form_layout.addRow("GST No:", self.gst_input)
         form_layout.addRow("Location:", self.location_input)
         
@@ -55,28 +61,37 @@ class ConsumerFormDialog(QDialog):
         layout.addWidget(self.btn_save)
 
     def save(self):
-        name = self.name_input.text()
-        person = self.person_input.text()
-        phone = self.phone_input.text()
-        
-        if not name or not person or not phone:
-            QMessageBox.warning(self, "Error", "Name, Contact Person, and Phone are required")
+        name = self.name_input.text().strip()
+        person = self.person_input.text().strip()
+        phone = self.phone_input.text().strip()
+        gst = self.gst_input.text().strip()
+
+        all_valid, error_msg = collect_errors([
+            validate_required(name, "Company Name"),
+            validate_required(person, "Contact Person"),
+            validate_required(phone, "Phone Number"),
+            validate_phone(phone),
+            validate_gst(gst),
+        ])
+
+        if not all_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
             return
             
         if self.consumer:
             self.consumer.company_name = name
             self.consumer.contact_person = person
             self.consumer.phone = phone
-            self.consumer.gst_no = self.gst_input.text()
-            self.consumer.location = self.location_input.text()
+            self.consumer.gst_no = gst.upper() if gst else None
+            self.consumer.location = self.location_input.text().strip()
             self.consumer.save()
         else:
             Consumer.create(
                 company_name=name,
                 contact_person=person,
                 phone=phone,
-                gst_no=self.gst_input.text(),
-                location=self.location_input.text()
+                gst_no=gst.upper() if gst else None,
+                location=self.location_input.text().strip()
             )
         
         # Notify reactivity system
@@ -110,6 +125,13 @@ class ConsumerManagementView(QWidget):
         header_layout.addLayout(title_container)
         
         header_layout.addStretch()
+        
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search consumers...")
+        self.search_input.setFixedWidth(250)
+        self.search_input.textChanged.connect(self.filter_data)
+        header_layout.addWidget(self.search_input)
+        
         self.btn_add = QPushButton("+ Add New Consumer")
         self.btn_add.setProperty("class", "PrimaryButton")
         self.btn_add.clicked.connect(self.show_add_consumer)
@@ -143,7 +165,18 @@ class ConsumerManagementView(QWidget):
         layout.addWidget(self.table)
 
     def load_data(self):
-        consumers = Consumer.select().order_by(Consumer.company_name)
+        self.all_consumers = list(Consumer.select().order_by(Consumer.company_name))
+        self.display_data(self.all_consumers)
+
+    def filter_data(self):
+        term = self.search_input.text().lower()
+        filtered = [c for c in self.all_consumers if
+                    term in c.company_name.lower() or
+                    term in (c.contact_person or '').lower() or
+                    term in (c.phone or '').lower()]
+        self.display_data(filtered)
+
+    def display_data(self, consumers):
         self.table.setRowCount(len(consumers))
         
         for i, c in enumerate(consumers):

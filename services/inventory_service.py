@@ -119,6 +119,10 @@ class InventoryService:
     @staticmethod
     def delete_material(material_id):
         with db.atomic():
+            from database.models import MRSItem, PIItem
+            # Delete related records first to avoid FK errors
+            Transaction.delete().where(Transaction.material == material_id).execute()
+            MRSItem.delete().where(MRSItem.material == material_id).execute()
+            PIItem.delete().where(PIItem.material == material_id).execute()
             material = Material.get_by_id(material_id)
-            # Optional: Check for transactions before deleting or handle cascade
-            return material.delete_instance(recursive=True)
+            return material.delete_instance()

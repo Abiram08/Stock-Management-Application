@@ -344,9 +344,6 @@ class InvoiceDialog(QtWidgets.QDialog):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Print failed: {str(e)}")
 
-    def email_invoice(self):
-        # ... (implementation remains same)
-        pass
 
     def mark_as_paid(self):
         from services.invoice_service import InvoiceService

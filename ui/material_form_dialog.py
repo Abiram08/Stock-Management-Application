@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from database.models import Supplier, Material
 from services.inventory_service import InventoryService
 from services.communication_service import relay
+from services.validators import validate_required, validate_positive_float, collect_errors
 
 class MaterialFormDialog(QDialog):
     def __init__(self, material=None, parent=None):
@@ -31,7 +32,9 @@ class MaterialFormDialog(QDialog):
         form = QFormLayout()
         
         self.name_input = QLineEdit()
+        self.name_input.setPlaceholderText("e.g. Reactive Red 195")
         self.code_input = QLineEdit()
+        self.code_input.setPlaceholderText("SKU / Product Code (optional)")
         
         self.category_input = QComboBox()
         self.category_input.addItems([
@@ -64,7 +67,7 @@ class MaterialFormDialog(QDialog):
         for s in suppliers:
             self.supplier_input.addItem(s.name, s.id)
             
-        form.addRow("Name:", self.name_input)
+        form.addRow("Name *:", self.name_input)
         form.addRow("Code:", self.code_input)
         form.addRow("Category:", self.category_input)
         form.addRow("Unit:", self.unit_input)
@@ -96,8 +99,24 @@ class MaterialFormDialog(QDialog):
 
     def save(self):
         name = self.name_input.text().strip()
-        if not name:
-            QMessageBox.warning(self, "Error", "Material name is required")
+
+        # Validate numeric fields
+        stock_valid, stock_msg, stock_val = validate_positive_float(
+            self.initial_stock_input.text(), "Initial Stock")
+        cost_valid, cost_msg, cost_val = validate_positive_float(
+            self.cost_input.text(), "Unit Cost")
+        min_stock_valid, min_stock_msg, min_stock_val = validate_positive_float(
+            self.min_stock_input.text(), "Min Stock Level")
+
+        all_valid, error_msg = collect_errors([
+            validate_required(name, "Material Name"),
+            (stock_valid, stock_msg),
+            (cost_valid, cost_msg),
+            (min_stock_valid, min_stock_msg),
+        ])
+
+        if not all_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
             return
             
         try:
@@ -106,9 +125,9 @@ class MaterialFormDialog(QDialog):
                 'code': self.code_input.text().strip() or None,
                 'category': self.category_input.currentText(),
                 'unit': self.unit_input.currentText(),
-                'quantity': float(self.initial_stock_input.text() or 0),
-                'min_stock': float(self.min_stock_input.text() or 10.0),
-                'unit_cost': float(self.cost_input.text() or 0),
+                'quantity': stock_val,
+                'min_stock': min_stock_val,
+                'unit_cost': cost_val,
                 'supplier_id': self.supplier_input.currentData()
             }
             
@@ -120,4 +139,4 @@ class MaterialFormDialog(QDialog):
             relay.data_changed.emit()
             self.accept()
         except Exception as e:
-            QMessageBox.warning(self, "Error", "Invalid numeric values")
+            QMessageBox.critical(self, "Error", f"Failed to save material: {str(e)}")

@@ -135,8 +135,75 @@ def initialize_db():
     # Ensure at least one company profile exists
     if CompanyProfile.select().count() == 0:
         CompanyProfile.create()
+    
+    # Seed supplier and product data (FY 2026)
+    if Supplier.select().count() == 0:
+        _seed_suppliers_and_products()
         
     db.close()
+
+
+def _seed_suppliers_and_products():
+    """Seed built-in supplier and product catalog data."""
+    seed_data = [
+        {
+            "company_name": "ZSCHIMMER AND SCHWARZ INDIA PVT LTD",
+            "contact_person": "Sales Dept",
+            "phone": "9000000001",
+            "gst_no": None,
+            "material_categories": "Auxiliaries, Chemicals",
+            "products": [
+                "Cefatex ENN", "Lubatex ECS Conc", "Lubatex LV-91",
+                "Optavon MEX-91", "Optavon SV", "Setavin PQD",
+                "Setavin RCO", "Setavin RCO Liq", "Tissocyl COD",
+                "Tissocyl RC 9", "Tissocyl WLF", "Zetesal 2000",
+                "Zetesal CPW", "Zetesal FIX", "Zetesal NPC",
+                "Zetesan LTS", "ZS Dyeset RFT"
+            ]
+        },
+        {
+            "company_name": "CHROMOLIN CAPITAL PVT LTD",
+            "contact_person": "Sales Dept",
+            "phone": "9000000002",
+            "gst_no": None,
+            "material_categories": "Chemicals",
+            "products": [
+                "HEMITTOL SRW", "FABIN EG", "CATAMINE OC", "CATAMINE HCS"
+            ]
+        },
+        {
+            "company_name": "Advanced Enzytech Pvt Ltd",
+            "contact_person": "Sales Dept",
+            "phone": "9000000003",
+            "gst_no": None,
+            "material_categories": "Chemicals, Auxiliaries",
+            "products": [
+                "Addox 12L", "Addox 25L", "Sebsoft HCL", "Seebrite 4ML"
+            ]
+        }
+    ]
+
+    for company in seed_data:
+        supplier = Supplier.create(
+            name=company["company_name"],
+            contact_person=company["contact_person"],
+            phone=company["phone"],
+            gst_no=company["gst_no"],
+            material_categories=company["material_categories"],
+            rating=5.0
+        )
+
+        for product_name in company["products"]:
+            Material.create(
+                name=product_name,
+                category="Other Chemicals",
+                unit="kg",
+                quantity=0.0,
+                min_stock=10.0,
+                unit_cost=0.0,
+                supplier=supplier
+            )
+
 
 if __name__ == '__main__':
     initialize_db()

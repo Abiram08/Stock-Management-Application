@@ -2,6 +2,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
                              QPushButton, QLabel, QMessageBox, QHBoxLayout)
 from database.models import Supplier, db
 from services.communication_service import relay
+from services.validators import validate_required, validate_phone, validate_gst, collect_errors
 
 class SupplierFormDialog(QDialog):
     def __init__(self, supplier=None, parent=None):
@@ -39,19 +40,24 @@ class SupplierFormDialog(QDialog):
         self.contact_person.setPlaceholderText("Primary Contact Person")
         
         self.phone_input = QLineEdit()
-        self.phone_input.setPlaceholderText("Phone Number")
+        self.phone_input.setPlaceholderText("e.g. 9876543210 or +91 9876543210")
         
         self.gst_no_input = QLineEdit()
-        self.gst_no_input.setPlaceholderText("GST No (15 digits)")
+        self.gst_no_input.setPlaceholderText("e.g. 33AAAAA0000A1Z5")
+        self.gst_no_input.setMaxLength(15)
+        # Auto-uppercase GST input
+        self.gst_no_input.textChanged.connect(
+            lambda text: self.gst_no_input.setText(text.upper()) if text != text.upper() else None
+        )
         
         self.categories_input = QLineEdit()
         self.categories_input.setPlaceholderText("e.g. Dyes, Chemicals, Tools")
         
-        form_container.addRow("Company Name:", self.name_input)
-        form_container.addRow("Contact Person:", self.contact_person)
-        form_container.addRow("Phone / Mobile:", self.phone_input)
+        form_container.addRow("Company Name *:", self.name_input)
+        form_container.addRow("Contact Person *:", self.contact_person)
+        form_container.addRow("Phone / Mobile *:", self.phone_input)
         form_container.addRow("GST No:", self.gst_no_input)
-        form_container.addRow("Categories:", self.categories_input)
+        form_container.addRow("Categories *:", self.categories_input)
         
         layout.addLayout(form_container)
         
@@ -80,9 +86,24 @@ class SupplierFormDialog(QDialog):
         self.categories_input.setText(self.supplier.material_categories)
 
     def save(self):
+        # Collect all validation errors at once
         name = self.name_input.text().strip()
-        if not name:
-            QMessageBox.warning(self, "Validation Error", "Company Name is required.")
+        contact = self.contact_person.text().strip()
+        phone = self.phone_input.text().strip()
+        gst = self.gst_no_input.text().strip()
+        categories = self.categories_input.text().strip()
+
+        all_valid, error_msg = collect_errors([
+            validate_required(name, "Company Name"),
+            validate_required(contact, "Contact Person"),
+            validate_required(phone, "Phone Number"),
+            validate_phone(phone),
+            validate_gst(gst),
+            validate_required(categories, "Categories"),
+        ])
+
+        if not all_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
             return
             
         try:
@@ -90,19 +111,19 @@ class SupplierFormDialog(QDialog):
                 if self.supplier:
                     # Update
                     self.supplier.name = name
-                    self.supplier.contact_person = self.contact_person.text().strip()
-                    self.supplier.phone = self.phone_input.text().strip()
-                    self.supplier.gst_no = self.gst_no_input.text().strip()
-                    self.supplier.material_categories = self.categories_input.text().strip()
+                    self.supplier.contact_person = contact
+                    self.supplier.phone = phone
+                    self.supplier.gst_no = gst.upper() if gst else None
+                    self.supplier.material_categories = categories
                     self.supplier.save()
                 else:
                     # Create
                     Supplier.create(
                         name=name,
-                        contact_person=self.contact_person.text().strip(),
-                        phone=self.phone_input.text().strip(),
-                        gst_no=self.gst_no_input.text().strip(),
-                        material_categories=self.categories_input.text().strip(),
+                        contact_person=contact,
+                        phone=phone,
+                        gst_no=gst.upper() if gst else None,
+                        material_categories=categories,
                         rating=5.0 # Initial rating for new partner
                     )
             self.accept()

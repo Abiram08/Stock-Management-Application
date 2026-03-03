@@ -191,9 +191,12 @@ class AnalyticsView(QWidget):
         self.dead_stock_card.value_label.setText(str(len(inv['dead_stock'])))
         self.total_sku_card.value_label.setText(str(len(inv['all_materials'])))
         
+        # low_stock includes dead_stock (qty=0 is also <= min_stock), so subtract dead from low for accurate chart
+        low_only = len(inv['low_stock']) - len(inv['dead_stock'])
+        healthy = len(inv['all_materials']) - len(inv['low_stock'])
         self.inv_chart.draw_pie(
-            ['Healthy', 'Low', 'Dead'], 
-            [len(inv['all_materials'])-len(inv['low_stock']), len(inv['low_stock']), len(inv['dead_stock'])],
+            ['Healthy', 'Low Stock', 'Dead Stock'], 
+            [healthy, low_only, len(inv['dead_stock'])],
             "INVENTORY HEALTH RATIO"
         )
         

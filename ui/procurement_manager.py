@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineE
 from PySide6.QtCore import Qt
 from services.procurement_service import ProcurementService
 from services.inventory_service import InventoryService
+from services.validators import validate_required, validate_positive_float, collect_errors
 from ui.components.status_badge import StatusBadge
 
 class ProcurementManagerView(QWidget):
@@ -246,19 +247,52 @@ class ProcurementManagerView(QWidget):
         self.load_data()
 
     def submit_pi(self):
-        reason = self.pi_reason.toPlainText()
+        reason = self.pi_reason.toPlainText().strip()
+
+        # Validate header
+        validations = [
+            validate_required(reason, "Reason / Remarks"),
+        ]
+
+        # Validate item rows
         items = []
-        for r in self.pi_rows:
+        has_valid_item = False
+        for i, r in enumerate(self.pi_rows):
             mid = r['combo'].currentData()
-            qty = r['qty'].text()
-            if mid and qty:
-                items.append({'material_id': mid, 'quantity': float(qty)})
+            qty_text = r['qty'].text().strip()
+            if not mid and not qty_text:
+                continue
+            if mid and qty_text:
+                qty_valid, qty_msg, qty_val = validate_positive_float(qty_text, f"Item {i+1} Quantity", allow_zero=False)
+                if not qty_valid:
+                    validations.append((False, qty_msg))
+                else:
+                    items.append({'material_id': mid, 'quantity': qty_val})
+                    has_valid_item = True
+            elif mid and not qty_text:
+                validations.append((False, f"Item {i+1}: Quantity is required."))
+            elif not mid and qty_text:
+                validations.append((False, f"Item {i+1}: Please select a material."))
+
+        if not has_valid_item:
+            validations.append((False, "Add at least one item with a valid quantity."))
+
+        all_valid, error_msg = collect_errors(validations)
+        if not all_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
+            return
         
-        if not items: return
-        
-        # For simplicity, pick the first items potential supplier or default
+        # Find supplier for PI - use the material's supplier if available
         mat = InventoryService.get_material_details(items[0]['material_id'])
-        sid = mat.supplier.id if mat.supplier else 1 # Fallback to first supplier
+        if mat.supplier:
+            sid = mat.supplier.id
+        else:
+            from database.models import Supplier
+            first_supplier = Supplier.select().first()
+            if not first_supplier:
+                QMessageBox.warning(self, "Error", "No suppliers registered. Please add a supplier first.")
+                return
+            sid = first_supplier.id
         
         ProcurementService.create_pi(self.user.id, items, reason, sid)
         QMessageBox.information(self, "PI Raised", "Purchase Indent submitted for Admin approval.")

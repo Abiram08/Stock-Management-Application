@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt
 from database.models import Material, Supplier, db
 from services.inventory_service import InventoryService
 from services.communication_service import relay
+from services.validators import validate_required, validate_positive_float, collect_errors
 from ui.components.card_widget import CardWidget
 
 class SupplierProductDialog(QDialog):
@@ -42,7 +43,7 @@ class SupplierProductDialog(QDialog):
         self.unit_input.addItems(["kg", "ltr", "pcs", "mtr", "bag"])
         
         self.cost_input = QLineEdit()
-        self.cost_input.setPlaceholderText("Unit Cost (₹)")
+        self.cost_input.setPlaceholderText("Unit Cost (₹) e.g. 150.00")
         
         self.stock_available_input = QLineEdit()
         self.stock_available_input.setPlaceholderText("Current Stock Available")
@@ -63,10 +64,10 @@ class SupplierProductDialog(QDialog):
         self.btn_add.setProperty("class", "PrimaryButton")
         self.btn_add.clicked.connect(self.add_product)
 
-        form_layout.addRow("Name:", self.name_input)
+        form_layout.addRow("Name *:", self.name_input)
         form_layout.addRow("Category:", self.category_input)
         form_layout.addRow("Unit:", self.unit_input)
-        form_layout.addRow("Unit Cost:", self.cost_input)
+        form_layout.addRow("Unit Cost *:", self.cost_input)
         form_layout.addRow("Stock Available:", self.stock_available_input)
         form_layout.addRow("", self.btn_add)
         
@@ -91,19 +92,29 @@ class SupplierProductDialog(QDialog):
 
     def add_product(self):
         name = self.name_input.text().strip()
-        if not name:
-            QMessageBox.warning(self, "Error", "Product name is required")
+
+        # Validate numeric fields
+        cost_valid, cost_msg, cost_val = validate_positive_float(
+            self.cost_input.text(), "Unit Cost")
+        stock_valid, stock_msg, stock_val = validate_positive_float(
+            self.stock_available_input.text(), "Stock Available")
+
+        all_valid, error_msg = collect_errors([
+            validate_required(name, "Product Name"),
+            (cost_valid, cost_msg),
+            (stock_valid, stock_msg),
+        ])
+
+        if not all_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
             return
             
         try:
-            cost = float(self.cost_input.text() or 0)
-            stock_available = float(self.stock_available_input.text() or 0)
-            
             data = {
                 'name': name,
                 'unit': self.unit_input.currentText(),
-                'unit_cost': cost,
-                'quantity': stock_available, # Maps to physical stock
+                'unit_cost': cost_val,
+                'quantity': stock_val, # Maps to physical stock
                 'min_stock': 10.0, # Default min stock for safety
                 'supplier': self.supplier,
                 'category': self.category_input.currentText()
@@ -119,7 +130,5 @@ class SupplierProductDialog(QDialog):
             relay.data_changed.emit()
             QMessageBox.information(self, "Success", "Product added and visible in Inventory")
             
-        except ValueError:
-            QMessageBox.warning(self, "Error", "Invalid cost or stock value")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An unexpected error occurred: {e}")
