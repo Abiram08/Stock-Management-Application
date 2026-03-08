@@ -1,10 +1,12 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
-                             QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFrame)
+                             QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QMessageBox)
 from PySide6.QtCore import Qt
 from services.inventory_service import InventoryService
 from services.communication_service import relay
 from ui.components.status_badge import StatusBadge
 from ui.material_details_view import MaterialDetailsDialog
+from utils.export_service import ExportService
+from utils.async_worker import QueryWorker
 
 class InventoryManagementView(QWidget):
     def __init__(self):
@@ -43,6 +45,7 @@ class InventoryManagementView(QWidget):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search materials...")
         self.search_input.setFixedWidth(280)
+        self.search_input.setFixedHeight(38)
         self.search_input.textChanged.connect(self.filter_data)
         
         self.btn_add_material = QPushButton("+ Add Material")
@@ -52,9 +55,19 @@ class InventoryManagementView(QWidget):
         self.btn_refresh = QPushButton("↻ Refresh")
         self.btn_refresh.setProperty("class", "SecondaryButton")
         self.btn_refresh.clicked.connect(self.load_data)
+
+        self.btn_abc = QPushButton("ABC Analysis")
+        self.btn_abc.setProperty("class", "SecondaryButton")
+        self.btn_abc.clicked.connect(self.run_abc_analysis)
+        
+        self.btn_export = QPushButton("⬇ Export CSV")
+        self.btn_export.setProperty("class", "SecondaryButton")
+        self.btn_export.clicked.connect(lambda: ExportService.export_table_to_csv(self.table, self, "inventory_data.csv"))
         
         actions_layout.addWidget(self.search_input)
         actions_layout.addWidget(self.btn_add_material)
+        actions_layout.addWidget(self.btn_export)
+        actions_layout.addWidget(self.btn_abc)
         actions_layout.addWidget(self.btn_refresh)
         header_row.addLayout(actions_layout)
         header_card.addLayout(header_row)
@@ -89,10 +102,13 @@ class InventoryManagementView(QWidget):
         
         layout.addWidget(self.table)
         
-        # Footer Legends
+        # Context Menu
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.show_context_menu)
         
         # Footer Legends
         footer_layout = QHBoxLayout()
+
         legend_style = "font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 6px;"
         
         legend1 = QLabel("● Low / Out of Stock")
@@ -107,8 +123,30 @@ class InventoryManagementView(QWidget):
         layout.addLayout(footer_layout)
 
     def load_data(self):
-        self.materials = InventoryService.get_all_materials()
-        self.display_data(self.materials)
+        # Display a simple placeholder while loading
+        self.table.setRowCount(0)
+        self.search_input.setEnabled(False)
+        self.btn_refresh.setText("↻ Loading...")
+        self.btn_refresh.setEnabled(False)
+        
+        self.worker = QueryWorker(InventoryService.get_all_materials)
+        self.worker.finished.connect(self._on_data_loaded)
+        self.worker.error.connect(self._on_data_error)
+        self.worker.start()
+
+    def _on_data_loaded(self, materials_list):
+        self.search_input.setEnabled(True)
+        self.btn_refresh.setText("↻ Refresh")
+        self.btn_refresh.setEnabled(True)
+        self.materials = materials_list
+        # Re-apply current search filter if any
+        self.filter_data()
+
+    def _on_data_error(self, err_msg):
+        self.search_input.setEnabled(True)
+        self.btn_refresh.setText("↻ Refresh")
+        self.btn_refresh.setEnabled(True)
+        QMessageBox.critical(self, "Data Load Error", f"Failed to load inventory:\n{err_msg}")
 
     def display_data(self, materials_list):
         self.table.setRowCount(len(materials_list))
@@ -123,10 +161,22 @@ class InventoryManagementView(QWidget):
             name_label.setStyleSheet("font-weight: bold; color: #1E293B;")
             name_layout.addWidget(name_label)
             
+            if m.code:
+                code_label = QLabel(m.code)
+                code_label.setStyleSheet("font-size: 10px; color: #64748B; background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-weight: 600;")
+                name_layout.addWidget(code_label)
+            
+            if m.abc_category and m.abc_category != 'None':
+                abc_label = QLabel(m.abc_category)
+                abc_colors = {'A': '#dc2626', 'B': '#d97706', 'C': '#65a30d'}
+                abc_color = abc_colors.get(m.abc_category, '#64748B')
+                abc_label.setStyleSheet(f"font-size: 10px; color: white; background: {abc_color}; padding: 2px 6px; border-radius: 4px; font-weight: 700;")
+                name_layout.addWidget(abc_label)
+            
             name_layout.addStretch()
             
             detail_layout.addLayout(name_layout)
-            cost_label = QLabel(f"Unit Cost: ₹{m.unit_cost}")
+            cost_label = QLabel(f"Unit Cost: ₹{m.unit_cost:,.2f}")
             cost_label.setStyleSheet("color: #64748B; font-size: 11px;")
             detail_layout.addWidget(cost_label)
             
@@ -183,7 +233,7 @@ class InventoryManagementView(QWidget):
             btn_edit.setToolTip("Edit Material")
             btn_edit.setStyleSheet("""
                 QPushButton {
-                    background-color: #FDFBF7;
+                    background-color: #FFFFFF;
                     color: #8B5E3C;
                     border: 1px solid #E5E7EB;
                     border-radius: 16px;
@@ -259,4 +309,59 @@ class InventoryManagementView(QWidget):
         dialog = MaterialDetailsDialog(material_id, self)
         dialog.exec()
 
-from PySide6.QtWidgets import QMessageBox # Fix missing import
+    def show_context_menu(self, pos):
+        item = self.table.itemAt(pos)
+        if not item: return
+        
+        row = item.row()
+        # Find material associated with this row
+        # (Assuming the list hasn't changed since load_data)
+        # Better: store ID in a hidden column or map row to ID
+        # For now, we'll re-fetch or use the list
+        try:
+            material = self.materials[row]
+            from PySide6.QtWidgets import QMenu
+            menu = QMenu(self)
+            menu.setStyleSheet("""
+                QMenu { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px; }
+                QMenu::item { padding: 8px 24px; border-radius: 4px; color: #1e293b; font-size: 11px; font-weight: 500; }
+                QMenu::item:selected { background-color: #f1f5f9; color: #6366f1; }
+            """)
+            
+            act_details = menu.addAction("View Transaction History")
+            act_edit = menu.addAction("Edit Material")
+            menu.addSeparator()
+            act_delete = menu.addAction("Delete Record")
+            
+            action = menu.exec(self.table.mapToGlobal(pos))
+            
+            if action == act_details: self.show_details(material.id)
+            elif action == act_edit: self.show_edit_material(material)
+            elif action == act_delete: self.confirm_delete_material(material.id)
+        except Exception:
+            pass
+
+
+    def run_abc_analysis(self):
+        from database.models import Material as MaterialModel
+        result = InventoryService.calculate_abc_analysis()
+        if not result:
+            QMessageBox.information(self, "ABC Analysis", "No inventory data available for analysis.")
+            return
+        
+        updated = 0
+        for item in result:
+            try:
+                mat = MaterialModel.get_by_id(item['material_id'])
+                mat.abc_category = item['category']
+                mat.save()
+                updated += 1
+            except Exception:
+                pass
+        
+        self.load_data()
+        QMessageBox.information(self, "ABC Analysis Complete", 
+                               f"Classified {updated} materials into A/B/C categories.\n\n"
+                               "• A = High value (top 70% of inventory value)\n"
+                               "• B = Medium value (next 20%)\n"
+                               "• C = Low value (bottom 10%)")

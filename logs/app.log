@@ -1,0 +1,81 @@
+2026-03-08 15:11:56,240 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 15:11:56,242 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_151156.db
+2026-03-08 15:34:06,656 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 15:34:06,659 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_153406.db
+2026-03-08 15:35:45,567 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 15:35:45,570 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_153545.db
+2026-03-08 16:06:45,325 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 16:06:45,328 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_160645.db
+2026-03-08 16:07:00,894 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 51, in handle_login
+    self.show_main_window(user)
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 56, in show_main_window
+    self.main_window = MainWindow(user)
+                       ^^^^^^^^^^^^^^^^
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 27, in __init__
+    self.setup_ui()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 196, in setup_ui
+    self.dashboard_view = AnalyticsView()
+                          ^^^^^^^^^^^^^^^
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\analytics_view.py", line 17, in __init__
+    self.load_data()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\analytics_view.py", line 278, in load_data
+    self.expiry_chart.draw_bar(
+TypeError: ChartWidget.draw_bar() got an unexpected keyword argument 'color_key'
+
+2026-03-08 16:07:15,416 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 16:07:15,419 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_160715.db
+2026-03-08 16:07:25,066 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 51, in handle_login
+    self.show_main_window(user)
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 56, in show_main_window
+    self.main_window = MainWindow(user)
+                       ^^^^^^^^^^^^^^^^
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 27, in __init__
+    self.setup_ui()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 196, in setup_ui
+    self.dashboard_view = AnalyticsView()
+                          ^^^^^^^^^^^^^^^
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\analytics_view.py", line 17, in __init__
+    self.load_data()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\analytics_view.py", line 278, in load_data
+    self.expiry_chart.draw_bar(
+TypeError: ChartWidget.draw_bar() got an unexpected keyword argument 'color_key'
+
+2026-03-08 16:08:50,433 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 16:08:50,436 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_160850.db
+2026-03-08 16:11:20,432 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 16:11:20,435 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_161120.db
+2026-03-08 16:11:35,537 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 51, in handle_login
+    self.show_main_window(user)
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 56, in show_main_window
+    self.main_window = MainWindow(user)
+                       ^^^^^^^^^^^^^^^^
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 27, in __init__
+    self.setup_ui()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 147, in setup_ui
+    self.btn_profile.setSizePolicy(QPushButton.Expanding, QPushButton.Fixed)
+                                   ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'PySide6.QtWidgets.QPushButton' has no attribute 'Expanding'
+
+2026-03-08 16:12:36,784 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 16:12:36,786 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_161236.db
+2026-03-08 16:17:09,998 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 16:17:10,000 - INFO - AppLogger - Deleted old backup: stock_management_20260308_151156.db
+2026-03-08 16:17:10,002 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_161710.db
+2026-03-08 16:26:00,729 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 16:26:00,731 - INFO - AppLogger - Deleted old backup: stock_management_20260308_153406.db
+2026-03-08 16:26:00,733 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_162600.db
+2026-03-08 17:54:37,755 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 17:54:37,761 - INFO - AppLogger - Deleted old backup: stock_management_20260308_153545.db
+2026-03-08 17:54:37,766 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_175437.db
+2026-03-08 18:01:52,062 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 18:01:52,063 - INFO - AppLogger - Deleted old backup: stock_management_20260308_160645.db
+2026-03-08 18:01:52,066 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_180152.db
+2026-03-08 18:24:01,326 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 18:24:01,329 - INFO - AppLogger - Deleted old backup: stock_management_20260308_160715.db
+2026-03-08 18:24:01,334 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_182401.db

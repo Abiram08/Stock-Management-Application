@@ -18,8 +18,8 @@ class ProfileView(QWidget):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(40, 40, 40, 40)
-        layout.setSpacing(30)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(24)
         
         # Header
         header_container = QVBoxLayout()

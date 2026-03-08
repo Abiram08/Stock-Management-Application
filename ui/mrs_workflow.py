@@ -23,8 +23,8 @@ class MRSWorkflowView(QWidget):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(24)
         
         title_container = QVBoxLayout()
         title = QLabel("Invoices")
@@ -87,13 +87,13 @@ class MRSWorkflowView(QWidget):
         self.type_combo = QComboBox()
         self.type_combo.addItems(["Existing Consumer", "New User / Manual Entry"])
         self.type_combo.setMinimumHeight(36)
-        self.type_combo.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white;")
+        self.type_combo.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white; color: #000000;")
         self.type_combo.currentIndexChanged.connect(self.on_invoice_type_changed)
         
         self.consumer_combo = QComboBox()
         self.consumer_combo.setPlaceholderText("Select Consumer")
         self.consumer_combo.setMinimumHeight(36)
-        self.consumer_combo.setStyleSheet("border: 1.5px solid #8B5E3C; border-radius: 8px; padding: 0 12px; background: white;")
+        self.consumer_combo.setStyleSheet("border: 1.5px solid #8B5E3C; border-radius: 8px; padding: 0 12px; background: white; color: #000000;")
         self.consumer_combo.currentIndexChanged.connect(self.on_consumer_selected)
 
         # Row 0: Invoice Type
@@ -240,11 +240,16 @@ class MRSWorkflowView(QWidget):
         # If new user, clear and enable everything
         if not is_existing:
             self.client_input.clear()
-            self.client_input.setEnabled(True)
+            self.client_input.setReadOnly(False)
+            self.client_input.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white; color: #000000;")
+            
             self.address_input.clear()
-            self.address_input.setEnabled(True)
+            self.address_input.setReadOnly(False)
+            self.address_input.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white; color: #000000;")
+            
             self.gstin_input.clear()
-            self.gstin_input.setEnabled(True)
+            self.gstin_input.setReadOnly(False)
+            self.gstin_input.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white; color: #000000;")
         else:
             # Re-trigger selection logic to populate if something is already selected
             self.on_consumer_selected(self.consumer_combo.currentIndex())
@@ -254,22 +259,37 @@ class MRSWorkflowView(QWidget):
             return
             
         consumer = self.consumer_combo.currentData()
+        readonly_style = "border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: #f1f5f9; color: #475569;"
+        editable_style = "border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white; color: #000000;"
+
         if consumer:
             self.client_input.setText(consumer.company_name)
-            self.client_input.setEnabled(False)
+            self.client_input.setReadOnly(True)
+            self.client_input.setStyleSheet(readonly_style)
+            
             self.address_input.setText(consumer.location or "")
-            self.address_input.setEnabled(False)
+            self.address_input.setReadOnly(True)
+            self.address_input.setStyleSheet(readonly_style)
+            
             self.gstin_input.setText(consumer.gst_no or "")
-            self.gstin_input.setEnabled(False)
+            self.gstin_input.setReadOnly(True)
+            self.gstin_input.setStyleSheet(readonly_style)
+            
             from PySide6.QtCore import QDate
             self.due_date_input.setDate(QDate.currentDate().addDays(14))
         else:
             self.client_input.clear()
-            self.client_input.setEnabled(True)
+            self.client_input.setReadOnly(False)
+            self.client_input.setStyleSheet(editable_style)
+            
             self.address_input.clear()
-            self.address_input.setEnabled(True)
+            self.address_input.setReadOnly(False)
+            self.address_input.setStyleSheet(editable_style)
+            
             self.gstin_input.clear()
-            self.gstin_input.setEnabled(True)
+            self.gstin_input.setReadOnly(False)
+            self.gstin_input.setStyleSheet(editable_style)
+            
             from PySide6.QtCore import QDate
             self.due_date_input.setDate(QDate.currentDate().addDays(14))
 
@@ -282,6 +302,7 @@ class MRSWorkflowView(QWidget):
         combo = QComboBox()
         combo.setPlaceholderText("Select Material")
         combo.setMinimumHeight(36)
+        combo.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white; color: #000000;")
         materials = InventoryService.get_all_materials()
         for m in materials:
             combo.addItem(f"{m.name} (Available: {m.quantity} {m.unit})", m.id)
@@ -290,6 +311,12 @@ class MRSWorkflowView(QWidget):
         qty_input.setPlaceholderText("Qty")
         qty_input.setFixedWidth(100)
         qty_input.setMinimumHeight(36)
+        qty_input.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; background: white; color: #000000;")
+        
+        from PySide6.QtGui import QDoubleValidator
+        validator = QDoubleValidator(0.0, 1000000.0, 3)
+        validator.setNotation(QDoubleValidator.StandardNotation)
+        qty_input.setValidator(validator)
         
         btn_remove = QPushButton("✕")
         btn_remove.setStyleSheet("color: #EF4444; background: transparent; font-weight: 800; border: none;")

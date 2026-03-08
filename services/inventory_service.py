@@ -1,5 +1,6 @@
 from peewee import JOIN
 from database.models import Material, Transaction, ProductInward, Supplier, db
+from services.audit_service import AuditService
 import datetime
 
 class InventoryService:
@@ -32,10 +33,10 @@ class InventoryService:
                 'context_note': ''
             }
 
-            if material.quantity <= material.min_stock:
-                context['context_note'] = 'Stock is approaching minimum level. Review procurement.'
-            elif material.quantity == 0:
+            if material.quantity == 0:
                 context['context_note'] = 'Stock is critically low (0). Immediate action required.'
+            elif material.quantity <= material.min_stock:
+                context['context_note'] = 'Stock is approaching minimum level. Review procurement.'
             elif material.quantity > material.min_stock * 5:
                 context['context_note'] = 'Material not used recently. Verify future requirement.'
 
@@ -59,21 +60,21 @@ class InventoryService:
         with db.atomic():
             materials = list(Material.select())
             if not materials:
-                return {'message': 'No materials to analyze'}
+                return []
 
             material_values = []
             for m in materials:
                 val = (m.quantity or 0) * (m.unit_cost or 0)
-                material_values.append({'id': m.id, 'value': val})
+                material_values.append({'material_id': m.id, 'value': val})
 
             material_values.sort(key=lambda x: x['value'], reverse=True)
             total_value = sum(item['value'] for item in material_values)
 
             if total_value == 0:
-                return {'message': 'Total inventory value is 0. Update costs.'}
+                return []
 
             cumulative_value = 0
-            count = 0
+            result = []
             for item in material_values:
                 cumulative_value += item['value']
                 percentage = (cumulative_value / total_value) * 100
@@ -84,10 +85,11 @@ class InventoryService:
                 elif percentage <= 90:
                     category = 'B'
 
-                Material.update(abc_category=category).where(Material.id == item['id']).execute()
-                count += 1
+                item['category'] = category
+                result.append(item)
+                Material.update(abc_category=category).where(Material.id == item['material_id']).execute()
 
-            return {'message': 'ABC Analysis completed', 'total_value': total_value, 'count': count}
+            return result
 
     @staticmethod
     def get_material_details(material_id):
@@ -108,21 +110,29 @@ class InventoryService:
     @staticmethod
     def create_material(data):
         with db.atomic():
-            return Material.create(**data)
+            material = Material.create(**data)
+            AuditService.log('MATERIAL_CREATED', details={'material_id': material.id, 'name': data.get('name', '')})
+            return material
 
     @staticmethod
     def update_material(material_id, data):
         with db.atomic():
+            data['updated_at'] = datetime.datetime.now()
             query = Material.update(**data).where(Material.id == material_id)
-            return query.execute()
+            result = query.execute()
+            AuditService.log('MATERIAL_UPDATED', details={'material_id': material_id})
+            return result
 
     @staticmethod
     def delete_material(material_id):
         with db.atomic():
             from database.models import MRSItem, PIItem
+            material = Material.get_by_id(material_id)
+            name = material.name
             # Delete related records first to avoid FK errors
             Transaction.delete().where(Transaction.material == material_id).execute()
             MRSItem.delete().where(MRSItem.material == material_id).execute()
             PIItem.delete().where(PIItem.material == material_id).execute()
-            material = Material.get_by_id(material_id)
-            return material.delete_instance()
+            material.delete_instance()
+            AuditService.log('MATERIAL_DELETED', details={'material_id': material_id, 'name': name})
+            return True

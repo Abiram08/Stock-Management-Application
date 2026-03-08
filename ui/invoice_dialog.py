@@ -20,7 +20,7 @@ class InvoiceDialog(QtWidgets.QDialog):
         branding_layout = QtWidgets.QHBoxLayout(branding_box)
         
         title_label = QtWidgets.QLabel("INVOICE PREVIEW")
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #8B5E3C;")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #000000;")
         
         toolbar = QtWidgets.QHBoxLayout()
         self.btn_save = QtWidgets.QPushButton("  Save as PDF")
@@ -45,8 +45,8 @@ class InvoiceDialog(QtWidgets.QDialog):
             """)
             toolbar.addWidget(btn)
         
-        self.btn_print.setStyleSheet(self.btn_save.styleSheet().replace("#8B5E3C", "#10B981").replace("#734D31", "#059669"))
-        self.btn_mark_paid.setStyleSheet(self.btn_save.styleSheet().replace("#8B5E3C", "#F59E0B").replace("#734D31", "#D97706"))
+        self.btn_print.setStyleSheet(self.btn_save.styleSheet().replace("#8B5E3C", "#000000").replace("#734D31", "#333333"))
+        self.btn_mark_paid.setStyleSheet(self.btn_save.styleSheet().replace("#8B5E3C", "#000000").replace("#734D31", "#333333"))
         
         # Hide "Mark as Paid" if already paid
         if self.invoice.status.upper() == 'PAID':
@@ -157,19 +157,20 @@ class InvoiceDialog(QtWidgets.QDialog):
                 /* Status Bar */
                 .status-bg {{ 
                     width: 100%; 
-                    background-color: #FEF3C7; 
+                    background-color: #F8FAFC; 
                     padding: 8px 0; 
                     text-align: center; 
                     margin-bottom: 30px; 
+                    border: 1px solid #E2E8F0;
                 }}
                 .status-text {{ 
                     font-weight: bold; 
                     font-size: 11pt; 
-                    color: #92400E; 
+                    color: #475569; 
                     text-transform: uppercase; 
                 }}
-                .status-paid-bg {{ background-color: #DCFCE7; }}
-                .status-paid-text {{ color: #166534; }}
+                .status-paid-bg {{ background-color: #F8FAFC; border-color: #1E293B; }}
+                .status-paid-text {{ color: #000000; }}
 
                 /* Info Boxes */
                 .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 40px; }}

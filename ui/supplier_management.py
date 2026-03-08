@@ -15,7 +15,7 @@ class SupplierManagementView(QWidget):
 
     def setup_ui(self):
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(30, 30, 30, 30)
+        self.main_layout.setContentsMargins(24, 24, 24, 24)
         self.main_layout.setSpacing(24)
         
         # Header
@@ -50,19 +50,24 @@ class SupplierManagementView(QWidget):
         # Master: Supplier List
         self.master_card = QFrame()
         self.master_card.setObjectName("Card")
+        self.master_card.setProperty("class", "Card")
+        self.master_card.setStyleSheet("#Card { background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 16px; }")
         master_layout = QVBoxLayout(self.master_card)
         
         self.supplier_table = QTableWidget()
-        self.supplier_table.setColumnCount(6)
-        self.supplier_table.setHorizontalHeaderLabels(["Company Name", "Contact Person", "Mobile", "GST No", "Products", "Actions"])
+        self.supplier_table.setColumnCount(7)
+        self.supplier_table.setHorizontalHeaderLabels(["Company Name", "Contact Person", "Mobile", "GST No", "Rating", "Products", "Actions"])
         self.supplier_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.supplier_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents) # Products
-        self.supplier_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Fixed) # Actions
-        self.supplier_table.setColumnWidth(5, 120)
+        self.supplier_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.supplier_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        self.supplier_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Fixed)
+        self.supplier_table.setColumnWidth(6, 120)
         self.supplier_table.verticalHeader().setVisible(False)
-        self.supplier_table.verticalHeader().setDefaultSectionSize(48)
+        self.supplier_table.verticalHeader().setDefaultSectionSize(52)
         self.supplier_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.supplier_table.setSelectionMode(QTableWidget.SingleSelection)
+        self.supplier_table.setShowGrid(False)
+        self.supplier_table.setAlternatingRowColors(True)
         self.supplier_table.itemSelectionChanged.connect(self.on_supplier_selected)
         master_layout.addWidget(self.supplier_table)
         
@@ -92,7 +97,9 @@ class SupplierManagementView(QWidget):
         self.product_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Fixed) # Actions
         self.product_table.setColumnWidth(4, 180) # Increased width
         self.product_table.verticalHeader().setVisible(False)
-        self.product_table.verticalHeader().setDefaultSectionSize(48) # Enough vertical space
+        self.product_table.verticalHeader().setDefaultSectionSize(52)
+        self.product_table.setShowGrid(False)
+        self.product_table.setAlternatingRowColors(True)
         self.detail_card.layout.addWidget(self.product_table)
         
         self.splitter.addWidget(self.master_card)
@@ -126,20 +133,26 @@ class SupplierManagementView(QWidget):
             self.supplier_table.setItem(i, 2, QTableWidgetItem(s.phone))
             self.supplier_table.setItem(i, 3, QTableWidgetItem(s.gst_no or "N/A"))
             
+            # Rating
+            rating_text = f"{'★' * int(round(s.rating))}{'☆' * (5 - int(round(s.rating)))}" if s.rating > 0 else "—"
+            rating_item = QTableWidgetItem(rating_text)
+            rating_item.setTextAlignment(Qt.AlignCenter)
+            self.supplier_table.setItem(i, 4, rating_item)
+            
             # Count products
             product_count = Material.select().where(Material.supplier == s).count()
             count_item = QTableWidgetItem(str(product_count))
             count_item.setTextAlignment(Qt.AlignCenter)
-            self.supplier_table.setItem(i, 4, count_item)
+            self.supplier_table.setItem(i, 5, count_item)
 
-            # Actions Cel
+            # Actions Cell
             btn_edit = QPushButton("✎")
             btn_edit.setFixedSize(32, 32)
             btn_edit.setCursor(Qt.PointingHandCursor)
             btn_edit.setToolTip("Edit Supplier Details")
             btn_edit.setStyleSheet("""
                 QPushButton {
-                    background-color: #FDFBF7;
+                    background-color: #FFFFFF;
                     color: #8B5E3C;
                     border: 1px solid #E5E7EB;
                     border-radius: 16px;
@@ -180,7 +193,7 @@ class SupplierManagementView(QWidget):
             action_layout.setAlignment(Qt.AlignCenter)
             action_layout.addWidget(btn_edit)
             action_layout.addWidget(btn_del)
-            self.supplier_table.setCellWidget(i, 5, action_container)
+            self.supplier_table.setCellWidget(i, 6, action_container)
 
     def on_supplier_selected(self):
         rows = self.supplier_table.selectionModel().selectedRows()
@@ -227,7 +240,7 @@ class SupplierManagementView(QWidget):
             btn_edit.setToolTip("Edit Product")
             btn_edit.setStyleSheet("""
                 QPushButton {
-                    background-color: #FDFBF7;
+                    background-color: #FFFFFF;
                     color: #8B5E3C;
                     border: 1px solid #E5E7EB;
                     border-radius: 16px;

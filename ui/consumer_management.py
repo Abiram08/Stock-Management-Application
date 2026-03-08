@@ -2,6 +2,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QFrame,
                              QDialog, QFormLayout, QLineEdit, QMessageBox)
 from PySide6.QtCore import Qt
+from pathlib import Path
 from database.models import Consumer
 from services.communication_service import relay
 from services.validators import validate_required, validate_phone, validate_gst, collect_errors
@@ -11,7 +12,14 @@ class ConsumerFormDialog(QDialog):
         super().__init__(parent)
         self.consumer = consumer
         self.setWindowTitle("Add New Consumer" if not consumer else "Edit Consumer")
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(450)
+        self.resize(450, 420)
+        
+        # Load Styles
+        styles_path = Path(__file__).parent / "styles.qss"
+        with open(styles_path, "r", encoding="utf-8") as f:
+            self.setStyleSheet(f.read())
+        
         self.setup_ui()
         
     def setup_ui(self):
@@ -53,12 +61,23 @@ class ConsumerFormDialog(QDialog):
         form_layout.addRow("Location:", self.location_input)
         
         layout.addLayout(form_layout)
-        layout.addSpacing(20)
+        layout.addStretch()
         
-        self.btn_save = QPushButton("Save Consumer")
-        self.btn_save.setStyleSheet("background: #8B5E3C; color: white; padding: 12px; font-weight: bold; border-radius: 8px;")
+        # Button Row
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        
+        btn_cancel = QPushButton("Cancel")
+        btn_cancel.setProperty("class", "SecondaryButton")
+        btn_cancel.clicked.connect(self.reject)
+        
+        self.btn_save = QPushButton("Update Consumer" if self.consumer else "Save Consumer")
+        self.btn_save.setProperty("class", "PrimaryButton")
         self.btn_save.clicked.connect(self.save)
-        layout.addWidget(self.btn_save)
+        
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(self.btn_save)
+        layout.addLayout(btn_layout)
 
     def save(self):
         name = self.name_input.text().strip()
@@ -192,7 +211,7 @@ class ConsumerManagementView(QWidget):
             btn_edit.setToolTip("Edit Consumer")
             btn_edit.setStyleSheet("""
                 QPushButton {
-                    background-color: #FDFBF7;
+                    background-color: #FFFFFF;
                     color: #8B5E3C;
                     border: 1px solid rgba(139, 94, 60, 0.2);
                     border-radius: 16px;

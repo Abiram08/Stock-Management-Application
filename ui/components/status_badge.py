@@ -13,9 +13,9 @@ class StatusBadge(QLabel):
         # status: success, warning, critical, neutral
         # Tailored for Beige/Light theme
         styles = {
-            'success': "background-color: #DCFCE7; color: #166534; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 4px 12px; border: 1px solid #BBF7D0;",
-            'warning': "background-color: #FEF3C7; color: #92400E; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 4px 12px; border: 1px solid #FDE68A;",
-            'critical': "background-color: #FEE2E2; color: #991B1B; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 4px 12px; border: 1px solid #FECACA;",
+            'success': "background-color: #EFF6FF; color: #734D31; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 4px 12px; border: 1px solid #BFDBFE;",
+            'warning': "background-color: #F8FAFC; color: #000000; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 4px 12px; border: 1px solid #CBD5E1;",
+            'critical': "background-color: #000000; color: #FFFFFF; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 4px 12px; border: 1px solid #000000;",
             'neutral': "background-color: #F1F5F9; color: #475569; border-radius: 12px; font-size: 11px; font-weight: 700; padding: 4px 12px; border: 1px solid #E2E8F0;"
         }
         self.setStyleSheet(styles.get(status, styles['neutral']))

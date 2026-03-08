@@ -132,6 +132,54 @@ def validate_batch_id(value):
     return True, ""
 
 
+def validate_password(value, field_name="Password"):
+    """
+    Validate password strength: required, minimum 4 characters.
+    """
+    if not value:
+        return False, f"{field_name} is required."
+    if len(value) < 4:
+        return False, f"{field_name} must be at least 4 characters."
+    return True, ""
+
+
+def validate_username(value):
+    """
+    Validate username: required, min 3 chars, alphanumeric + underscores only.
+    """
+    if not value or not value.strip():
+        return False, "Username is required."
+
+    value = value.strip()
+    if len(value) < 3:
+        return False, "Username must be at least 3 characters."
+
+    pattern = r'^[A-Za-z0-9_]+$'
+    if not re.match(pattern, value):
+        return False, "Username can only contain letters, numbers, and underscores."
+    return True, ""
+
+
+def validate_temp_range(min_val, max_val):
+    """
+    Validate that min temperature is less than or equal to max temperature.
+    Returns (is_valid, error_message).
+    """
+    if min_val is not None and max_val is not None and min_val > max_val:
+        return False, f"Storage Min Temp ({min_val}°C) cannot be greater than Max Temp ({max_val}°C)."
+    return True, ""
+
+
+def validate_date_order(start_date, end_date, start_name="Start Date", end_name="End Date"):
+    """
+    Validate that start_date is on or before end_date.
+    Returns (is_valid, error_message).
+    """
+    if start_date and end_date and start_date > end_date:
+        return False, f"{start_name} cannot be after {end_name}."
+    return True, ""
+
+
 def collect_errors(validations):
     """
     Collect all validation errors from a list of (is_valid, error_msg) tuples.

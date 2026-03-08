@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QTableWidget, QTableWidgetItem, QHeaderView, QPushButton)
+                             QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QFrame)
 from PySide6.QtCore import Qt
+from pathlib import Path
 from services.inventory_service import InventoryService
 from ui.components.status_badge import StatusBadge
 
@@ -12,7 +13,8 @@ class MaterialDetailsDialog(QDialog):
         self.resize(800, 600)
         
         # Load Styles
-        with open("ui/styles.qss", "r") as f:
+        styles_path = Path(__file__).parent / "styles.qss"
+        with open(styles_path, "r", encoding="utf-8") as f:
             self.setStyleSheet(f.read())
             
         self.setup_ui()
@@ -82,5 +84,3 @@ class MaterialDetailsDialog(QDialog):
                 qty_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 qty_item.setForeground(Qt.darkGreen if tx.quantity > 0 else Qt.darkRed)
                 self.table.setItem(i, 3, qty_item)
-
-from PySide6.QtWidgets import QFrame # Fix missing import

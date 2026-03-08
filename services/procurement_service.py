@@ -1,4 +1,5 @@
 from database.models import ProductInward, PIItem, Material, Transaction, db, Supplier
+from services.audit_service import AuditService
 import datetime
 
 class ProcurementService:
@@ -20,6 +21,7 @@ class ProcurementService:
                     material=item['material_id'],
                     quantity=item['quantity']
                 )
+            AuditService.log('PI_CREATED', details={'pi_id': pi.id, 'supplier_id': supplier_id, 'item_count': len(items)})
             return pi
 
     @staticmethod
@@ -37,6 +39,7 @@ class ProcurementService:
         pi.approval_remarks = remarks
         pi.approved_at = datetime.datetime.now()
         pi.save()
+        AuditService.log('PI_STATUS_UPDATED', details={'pi_id': pi.id, 'status': status, 'admin_id': admin_id})
         return pi
 
     @staticmethod
@@ -71,6 +74,7 @@ class ProcurementService:
             pi.status = 'COMPLETED'
             pi.completed_at = datetime.datetime.now()
             pi.save()
+            AuditService.log('PI_INWARD_PROCESSED', details={'pi_id': pi.id, 'supplier_rating': rating})
             return pi
 
     @staticmethod

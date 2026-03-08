@@ -51,7 +51,7 @@ class ChartWidget(QWidget):
             self.annot.set_visible(False)
             self.canvas.draw_idle()
 
-    def draw_bar(self, labels, values, title, color='#6366f1'):
+    def draw_bar(self, labels, values, title, color='#8B5E3C'):
         self.canvas.ax.clear()
         # Reset annotation after clear
         self.annot = self.canvas.ax.annotate("", xy=(0,0), xytext=(0,10),
@@ -80,7 +80,7 @@ class ChartWidget(QWidget):
         self.canvas.fig.tight_layout(pad=2.0)
         self.canvas.draw()
 
-    def draw_line(self, x, y, title, color='#8b5cf6'):
+    def draw_line(self, x, y, title, color='#8B5E3C'):
         self.canvas.ax.clear()
         # Reset annotation after clear
         self.annot = self.canvas.ax.annotate("", xy=(0,0), xytext=(0,10),
@@ -127,7 +127,7 @@ class ChartWidget(QWidget):
             return
 
         # Modern, vibrant palette
-        colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+        colors = ['#8B5E3C', '#A67B5B', '#C9A98A', '#734D31', '#F5E6D3']
         
         # Use white for autopct (percentages) to contrast with slices
         # Use dark slate for labels 

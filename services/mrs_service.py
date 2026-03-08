@@ -1,4 +1,5 @@
 from database.models import MRS, MRSItem, Material, Transaction, db
+from services.audit_service import AuditService
 import datetime
 
 class MRSService:
@@ -32,6 +33,7 @@ class MRSService:
                     quantity_requested=item['quantity_requested']
                 )
             
+            AuditService.log('MRS_CREATED', details={'mrs_id': mrs.id, 'batch_id': batch_id, 'item_count': len(items)})
             return mrs
 
     @staticmethod
@@ -93,4 +95,5 @@ class MRSService:
             mrs.status = 'ISSUED' if all_issued else 'PARTIALLY_ISSUED'
             mrs.save()
             
+            AuditService.log('MRS_ISSUED', details={'mrs_id': mrs.id, 'status': mrs.status})
             return mrs

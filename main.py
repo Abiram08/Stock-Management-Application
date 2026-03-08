@@ -4,15 +4,24 @@ from database.models import initialize_db
 from ui.login_view import LoginView
 from ui.main_window import MainWindow
 from services.auth_service import AuthService
+from utils.logger import global_exception_handler, app_logger
+from utils.backup_service import BackupService
 
 class ConsultancyApp:
     def __init__(self):
+        # Setup global exception handler for crash reporting
+        sys.excepthook = global_exception_handler
+        
         self.app = QApplication(sys.argv)
         self.auth_service = AuthService()
         self.main_window = None
         
         # Initialize Database
         initialize_db()
+        
+        # Trigger automated backup on startup
+        app_logger.info("Application starting - running backup protocol")
+        BackupService.create_database_backup()
         
         # Show Login
         self.show_login()

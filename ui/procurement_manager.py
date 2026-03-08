@@ -6,6 +6,7 @@ from services.procurement_service import ProcurementService
 from services.inventory_service import InventoryService
 from services.validators import validate_required, validate_positive_float, collect_errors
 from ui.components.status_badge import StatusBadge
+from services.communication_service import relay
 
 class ProcurementManagerView(QWidget):
     def __init__(self, user):
@@ -13,6 +14,9 @@ class ProcurementManagerView(QWidget):
         self.user = user
         self.setup_ui()
         self.load_data()
+
+        # Connect to reactivity system
+        relay.data_changed.connect(self.load_data)
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -43,7 +47,8 @@ class ProcurementManagerView(QWidget):
         """)
         
         # Tab 1: Raise PI
-        if self.user.role in ['STORE_MANAGER', 'ADMIN']:
+        self.has_raise_tab = self.user.role in ['STORE_MANAGER', 'ADMIN']
+        if self.has_raise_tab:
             self.tabs.addTab(self.create_raise_pi_tab(), "Raise Purchase Indent")
             
         # Tab 2: Approvals (Admin Only)
@@ -52,7 +57,10 @@ class ProcurementManagerView(QWidget):
             
         # Tab 3: Inward Entry
         if self.user.role in ['STORE_MANAGER', 'ADMIN']:
-            self.tabs.addTab(self.create_inward_tab(), "Inward Entry")
+            self.inward_tab_widget = self.create_inward_tab()
+            self.tabs.addTab(self.inward_tab_widget, "Inward Entry")
+        else:
+            self.inward_tab_widget = None
             
         layout.addWidget(self.tabs)
 
@@ -80,7 +88,7 @@ class ProcurementManagerView(QWidget):
         items_header = QHBoxLayout()
         items_header.addWidget(QLabel("ORDER ITEMS"))
         self.btn_add_pi_row = QPushButton("+ Add Item")
-        self.btn_add_pi_row.setStyleSheet("color: #6366f1; background: rgba(99, 102, 241, 0.1); border: none; padding: 6px 14px; border-radius: 14px; font-weight: 700;")
+        self.btn_add_pi_row.setStyleSheet("color: #8B5E3C; background: rgba(139, 94, 60, 0.1); border: none; padding: 6px 14px; border-radius: 14px; font-weight: 700;")
         self.btn_add_pi_row.clicked.connect(self.add_pi_row)
         items_header.addStretch()
         items_header.addWidget(self.btn_add_pi_row)
@@ -109,20 +117,20 @@ class ProcurementManagerView(QWidget):
         
         # Recommendation Side
         rec_card = CardWidget()
-        rec_card.setStyleSheet("background: #F0F4FF; border: 1px solid rgba(99, 102, 241, 0.2);")
+        rec_card.setStyleSheet("background: #FFFFFF; border: 1px solid #E2E8F0;")
         rec_layout = rec_card.layout
         
         rec_title = QLabel("AI PROCUREMENT ASSISTANT")
-        rec_title.setStyleSheet("font-weight: 800; font-size: 11px; color: #1E1B4B; letter-spacing: 1.5px;")
+        rec_title.setStyleSheet("font-weight: 800; font-size: 11px; color: #1E293B; letter-spacing: 1.5px;")
         rec_layout.addWidget(rec_title)
         
         self.rec_info = QLabel("Analyzing stock levels...")
-        self.rec_info.setStyleSheet("font-size: 13px; color: #4338CA; margin-top: 10px; font-weight: 500;")
+        self.rec_info.setStyleSheet("font-size: 13px; color: #000000; margin-top: 10px; font-weight: 500;")
         self.rec_info.setWordWrap(True)
         rec_layout.addWidget(self.rec_info)
         
         btn_autofill = QPushButton("Auto-Fill Recommendations")
-        btn_autofill.setStyleSheet("background: #1E293B; color: white; font-weight: 700; padding: 12px; border-radius: 8px; border: none; margin-top: 20px;")
+        btn_autofill.setStyleSheet("background: #000000; color: white; font-weight: 700; padding: 12px; border-radius: 8px; border: none; margin-top: 20px;")
         btn_autofill.clicked.connect(self.autofill_recommended)
         btn_autofill.setCursor(Qt.PointingHandCursor)
         
@@ -152,7 +160,7 @@ class ProcurementManagerView(QWidget):
         qty_input.setFixedWidth(80)
         
         btn_del = QPushButton("✕")
-        btn_del.clicked.connect(lambda: row.deleteLater())
+        btn_del.clicked.connect(lambda checked=False, r=row: self.remove_pi_row(r))
         
         row_layout.addWidget(combo, 3)
         row_layout.addWidget(qty_input, 1)
@@ -160,6 +168,10 @@ class ProcurementManagerView(QWidget):
         
         self.pi_items_layout.addWidget(row)
         self.pi_rows.append({'row': row, 'combo': combo, 'qty': qty_input})
+
+    def remove_pi_row(self, row_widget):
+        row_widget.deleteLater()
+        self.pi_rows = [r for r in self.pi_rows if r['row'] != row_widget]
 
     def autofill_recommended(self):
         recs = ProcurementService.get_recommendations()
@@ -200,9 +212,10 @@ class ProcurementManagerView(QWidget):
         self.refresh_approvals(pis)
         self.refresh_inward(pis)
         
-        # Update rec info
-        recs = ProcurementService.get_recommendations()
-        self.rec_info.setText(f"{len(recs)} items below threshold. Action: Restock immediately.")
+        # Update rec info (only if the Raise PI tab was created)
+        if self.has_raise_tab and hasattr(self, 'rec_info'):
+            recs = ProcurementService.get_recommendations()
+            self.rec_info.setText(f"{len(recs)} items below threshold. Action: Restock immediately.")
 
     def refresh_approvals(self, pis):
         if self.user.role != 'ADMIN': return
@@ -220,8 +233,8 @@ class ProcurementManagerView(QWidget):
 
     def review_pi(self, pi):
         # Quick dialog for approval
-        remarks, ok = QMessageBox.question(self, "Approve PI", f"Approve {pi.reason}?\nAdd remarks:", QMessageBox.Yes | QMessageBox.No)
-        status = 'APPROVED' if remarks == QMessageBox.Yes else 'REJECTED'
+        reply = QMessageBox.question(self, "Approve PI", f"Approve {pi.reason}?\nAdd remarks:", QMessageBox.Yes | QMessageBox.No)
+        status = 'APPROVED' if reply == QMessageBox.Yes else 'REJECTED'
         ProcurementService.update_pi_status(pi.id, self.user.id, status, "Desktop Approval")
         self.load_data()
 
@@ -296,5 +309,7 @@ class ProcurementManagerView(QWidget):
         
         ProcurementService.create_pi(self.user.id, items, reason, sid)
         QMessageBox.information(self, "PI Raised", "Purchase Indent submitted for Admin approval.")
+        relay.data_changed.emit()
         self.load_data()
-        self.tabs.setCurrentIndex(2) # Switch to Inward tab (to see status)
+        if self.inward_tab_widget:
+            self.tabs.setCurrentWidget(self.inward_tab_widget)

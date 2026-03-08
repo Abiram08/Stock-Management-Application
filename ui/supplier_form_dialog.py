@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit, 
                              QPushButton, QLabel, QMessageBox, QHBoxLayout)
+from pathlib import Path
 from database.models import Supplier, db
 from services.communication_service import relay
 from services.validators import validate_required, validate_phone, validate_gst, collect_errors
@@ -12,7 +13,8 @@ class SupplierFormDialog(QDialog):
         self.resize(450, 450)
         
         # Load Styles
-        with open("ui/styles.qss", "r") as f:
+        styles_path = Path(__file__).parent / "styles.qss"
+        with open(styles_path, "r", encoding="utf-8") as f:
             self.setStyleSheet(f.read())
             
         self.setup_ui()
@@ -60,6 +62,7 @@ class SupplierFormDialog(QDialog):
         form_container.addRow("Categories *:", self.categories_input)
         
         layout.addLayout(form_container)
+        layout.addStretch()
         
         # Buttons
         btn_layout = QHBoxLayout()
@@ -126,7 +129,7 @@ class SupplierFormDialog(QDialog):
                         material_categories=categories,
                         rating=5.0 # Initial rating for new partner
                     )
-            self.accept()
             relay.data_changed.emit()
+            self.accept()
         except Exception as e:
             QMessageBox.critical(self, "Database Error", f"Failed to save supplier: {str(e)}")
