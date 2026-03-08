@@ -12,8 +12,8 @@ venv/
 ENV/
 
 # Database
-consultancy.db
-*.sqlite3
+# consultancy.db
+# *.sqlite3
 
 # UI/Local Cache
 *.pdf

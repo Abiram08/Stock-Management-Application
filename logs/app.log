@@ -79,3 +79,6 @@ AttributeError: type object 'PySide6.QtWidgets.QPushButton' has no attribute 'Ex
 2026-03-08 18:24:01,326 - INFO - AppLogger - Application starting - running backup protocol
 2026-03-08 18:24:01,329 - INFO - AppLogger - Deleted old backup: stock_management_20260308_160715.db
 2026-03-08 18:24:01,334 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_182401.db
+2026-03-08 18:57:03,985 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-08 18:57:03,990 - INFO - AppLogger - Deleted old backup: stock_management_20260308_160850.db
+2026-03-08 18:57:03,997 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_185703.db
