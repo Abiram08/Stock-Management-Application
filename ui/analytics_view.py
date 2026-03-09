@@ -109,29 +109,49 @@ class AnalyticsView(QWidget):
         layout.setSpacing(20)
         layout.setContentsMargins(16, 16, 16, 16)
         
+        # Row 1: Invoice Status (Pie) and Supplier Performance (Bar)
         top_row = QHBoxLayout()
         top_row.setSpacing(16)
         
-        # Growth Line Chart
-        rev_card = self._create_card_container("Revenue Trajectory (Past 6 Months)")
+        # Invoice Pie Chart
+        invoice_card = self._create_card_container("Invoice Lifecycle Distribution")
+        inv_vbox = QVBoxLayout()
+        self.invoice_pie_chart = ChartWidget()
+        self.invoice_pie_chart.setFixedHeight(220)
+        inv_vbox.addWidget(self.invoice_pie_chart)
+        
+        invoice_summary = QLabel("Breakdown of billing cycles: Sent (Awaiting payment), Paid (Verified), and Overdue (Action required).")
+        invoice_summary.setStyleSheet("font-size: 11px; color: #64748b; font-style: italic;")
+        invoice_summary.setWordWrap(True)
+        inv_vbox.addWidget(invoice_summary)
+        invoice_card.layout.addLayout(inv_vbox)
+        
+        # Supplier Performance Bar
+        supplier_card = self._create_card_container("Top Partners by Procurement Volume")
+        self.supplier_chart = ChartWidget()
+        supplier_card.layout.addWidget(self.supplier_chart)
+        
+        top_row.addWidget(invoice_card, 1)
+        top_row.addWidget(supplier_card, 1)
+        layout.addLayout(top_row)
+        
+        # Row 2: Client Growth (Line) and Top Consumers (Bar)
+        bottom_row = QHBoxLayout()
+        bottom_row.setSpacing(16)
+
+        # Revenue Line
+        rev_card = self._create_card_container("Revenue Trajectory (Past 6 Mo)")
         self.revenue_chart = ChartWidget()
         rev_card.layout.addWidget(self.revenue_chart)
         
-        # Consumer Distribution Donut
-        consumer_card = self._create_card_container("Top 5 Consumer Contributions")
-        consumer_card.setFixedWidth(380)
+        # Top Consumers Pie
+        consumer_card = self._create_card_container("Client Revenue Concentraton")
         self.consumer_chart = ChartWidget()
         consumer_card.layout.addWidget(self.consumer_chart)
         
-        top_row.addWidget(rev_card, 2)
-        top_row.addWidget(consumer_card, 1)
-        layout.addLayout(top_row)
-        
-        # Invoice Status Tracking
-        invoice_card = self._create_card_container("Transactional Ecosystem Status")
-        self.status_chart = ChartWidget()
-        invoice_card.layout.addWidget(self.status_chart)
-        layout.addWidget(invoice_card)
+        bottom_row.addWidget(rev_card, 2)
+        bottom_row.addWidget(consumer_card, 1)
+        layout.addLayout(bottom_row)
         layout.addStretch()
         
         return tab
@@ -258,10 +278,18 @@ class AnalyticsView(QWidget):
             
         status_stats = AnalyticsService.get_invoice_stats()
         if status_stats:
-            self.status_chart.draw_bar(
+            self.invoice_pie_chart.draw_pie(
                 [s['name'] for s in status_stats],
                 [s['value'] for s in status_stats],
-                "Invoicing Lifecycle Maturity",
+                "Invoicing Lifecycle Breakdown"
+            )
+
+        suppliers = AnalyticsService.get_supplier_performance()
+        if suppliers:
+            self.supplier_chart.draw_bar(
+                [s['name'][:12] for s in suppliers],
+                [s['value'] for s in suppliers],
+                "Top Suppliers by Purchase Capacity",
                 color='#8B5E3C'
             )
 

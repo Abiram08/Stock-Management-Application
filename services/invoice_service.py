@@ -60,7 +60,7 @@ class InvoiceService:
             total_amount=total_amount,
             tax_amount=tax_amount,
             grand_total=grand_total,
-            status='DRAFT',
+            status='SENT',
             due_date=due_date or (datetime.now() + timedelta(days=14)).date(),
             
             # Snapshots

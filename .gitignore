@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.pytest_cache/
 
 # Environments
 .env
@@ -11,14 +12,24 @@ env/
 venv/
 ENV/
 
-# Database
-# consultancy.db
-# *.sqlite3
+# Database & Documentation
+*.db
+*.sqlite3
+*.dbml
 
-# UI/Local Cache
+# Testing
+tests/
+test_*.py
+
+# UI/Local Cache & Logs
+logs/
+backups/
 *.pdf
 assets/logos/temp_*
 .gemini/
 .agents/
 .idea/
 .vscode/
+
+# Scripts
+revert_colors.py

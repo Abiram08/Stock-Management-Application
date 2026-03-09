@@ -97,3 +97,27 @@ class MRSService:
             
             AuditService.log('MRS_ISSUED', details={'mrs_id': mrs.id, 'status': mrs.status})
             return mrs
+
+    @staticmethod
+    def generate_batch_id():
+        """Generate a sequential Batch ID: BATCH-YYYY-MM-XXXX"""
+        now = datetime.datetime.now()
+        prefix = f"BATCH-{now.strftime('%Y-%m')}-"
+        
+        # Find the last batch ID with this prefix
+        last_mrs = (MRS.select()
+                   .where(MRS.batch_id.startswith(prefix))
+                   .order_by(MRS.batch_id.desc())
+                   .first())
+        
+        if last_mrs:
+            try:
+                # Extract sequence number from 'BATCH-YYYY-MM-001'
+                last_seq = int(last_mrs.batch_id.split('-')[-1])
+                next_seq = last_seq + 1
+            except (ValueError, IndexError):
+                next_seq = 1
+        else:
+            next_seq = 1
+            
+        return f"{prefix}{next_seq:03d}"

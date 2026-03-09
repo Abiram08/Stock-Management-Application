@@ -56,11 +56,15 @@ class SupplierManagementView(QWidget):
         
         self.supplier_table = QTableWidget()
         self.supplier_table.setColumnCount(7)
-        self.supplier_table.setHorizontalHeaderLabels(["Company Name", "Contact Person", "Mobile", "GST No", "Rating", "Products", "Actions"])
-        self.supplier_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.supplier_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.supplier_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        self.supplier_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Fixed)
+        self.supplier_table.setHorizontalHeaderLabels(["S.No", "Company Name", "Contact Person", "Mobile", "GST No", "Products", "Actions"])
+        
+        header = self.supplier_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(6, QHeaderView.Fixed)
+        
+        self.supplier_table.setColumnWidth(0, 50)
         self.supplier_table.setColumnWidth(6, 120)
         self.supplier_table.verticalHeader().setVisible(False)
         self.supplier_table.verticalHeader().setDefaultSectionSize(52)
@@ -90,12 +94,17 @@ class SupplierManagementView(QWidget):
         self.detail_card.layout.addLayout(detail_header)
         
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(5)
-        self.product_table.setHorizontalHeaderLabels(["Name", "Unit", "Cost", "Stock", "Actions"])
-        self.product_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.product_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents) # Name
-        self.product_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Fixed) # Actions
-        self.product_table.setColumnWidth(4, 180) # Increased width
+        self.product_table.setColumnCount(6)
+        self.product_table.setHorizontalHeaderLabels(["S.No", "Name", "Unit", "Cost", "Stock", "Actions"])
+        
+        header = self.product_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents) # Name
+        header.setSectionResizeMode(5, QHeaderView.Fixed) # Actions
+        
+        self.product_table.setColumnWidth(0, 50)
+        self.product_table.setColumnWidth(5, 180) # Increased width
         self.product_table.verticalHeader().setVisible(False)
         self.product_table.verticalHeader().setDefaultSectionSize(52)
         self.product_table.setShowGrid(False)
@@ -128,16 +137,15 @@ class SupplierManagementView(QWidget):
         self.supplier_table.setRowCount(len(suppliers))
         self.supplier_data = list(suppliers) # Keep for reference
         for i, s in enumerate(suppliers):
-            self.supplier_table.setItem(i, 0, QTableWidgetItem(s.name))
-            self.supplier_table.setItem(i, 1, QTableWidgetItem(s.contact_person))
-            self.supplier_table.setItem(i, 2, QTableWidgetItem(s.phone))
-            self.supplier_table.setItem(i, 3, QTableWidgetItem(s.gst_no or "N/A"))
-            
-            # Rating
-            rating_text = f"{'★' * int(round(s.rating))}{'☆' * (5 - int(round(s.rating)))}" if s.rating > 0 else "—"
-            rating_item = QTableWidgetItem(rating_text)
-            rating_item.setTextAlignment(Qt.AlignCenter)
-            self.supplier_table.setItem(i, 4, rating_item)
+            # 0. S.No
+            sno_item = QTableWidgetItem(str(i + 1))
+            sno_item.setTextAlignment(Qt.AlignCenter)
+            self.supplier_table.setItem(i, 0, sno_item)
+
+            self.supplier_table.setItem(i, 1, QTableWidgetItem(s.name))
+            self.supplier_table.setItem(i, 2, QTableWidgetItem(s.contact_person))
+            self.supplier_table.setItem(i, 3, QTableWidgetItem(s.phone))
+            self.supplier_table.setItem(i, 4, QTableWidgetItem(s.gst_no or "N/A"))
             
             # Count products
             product_count = Material.select().where(Material.supplier == s).count()
@@ -214,26 +222,31 @@ class SupplierManagementView(QWidget):
         products = Material.select().where(Material.supplier == self.current_supplier)
         self.product_table.setRowCount(len(products))
         for i, p in enumerate(products):
-            # 0. Name
+            # 0. S.No
+            sno_item = QTableWidgetItem(str(i + 1))
+            sno_item.setTextAlignment(Qt.AlignCenter)
+            self.product_table.setItem(i, 0, sno_item)
+
+            # 1. Name
             name_item = QTableWidgetItem(p.name)
-            self.product_table.setItem(i, 0, name_item)
+            self.product_table.setItem(i, 1, name_item)
             
-            # 1. Unit
+            # 2. Unit
             unit_item = QTableWidgetItem(p.unit)
             unit_item.setTextAlignment(Qt.AlignCenter)
-            self.product_table.setItem(i, 1, unit_item)
+            self.product_table.setItem(i, 2, unit_item)
             
-            # 2. Cost
+            # 3. Cost
             cost_item = QTableWidgetItem(f"₹{p.unit_cost}")
             cost_item.setTextAlignment(Qt.AlignCenter)
-            self.product_table.setItem(i, 2, cost_item)
+            self.product_table.setItem(i, 3, cost_item)
             
-            # 3. Stock
+            # 4. Stock
             stock_item = QTableWidgetItem(str(p.quantity))
             stock_item.setTextAlignment(Qt.AlignCenter)
-            self.product_table.setItem(i, 3, stock_item)
+            self.product_table.setItem(i, 4, stock_item)
             
-            # 4. Actions
+            # 5. Actions
             btn_edit = QPushButton("✎")
             btn_edit.setFixedSize(32, 32)
             btn_edit.setCursor(Qt.PointingHandCursor)
@@ -283,7 +296,7 @@ class SupplierManagementView(QWidget):
             cell_layout.addWidget(btn_edit)
             cell_layout.addWidget(btn_del)
             cell_layout.addStretch() # Push to center
-            self.product_table.setCellWidget(i, 4, cell_widget)
+            self.product_table.setCellWidget(i, 5, cell_widget)
 
     def show_register_supplier(self):
         from ui.supplier_form_dialog import SupplierFormDialog

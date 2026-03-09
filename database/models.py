@@ -131,7 +131,7 @@ class Invoice(BaseModel):
     client_address = TextField(null=True)
     client_gstin = CharField(null=True)
     gst_percentage = FloatField(default=18)
-    status = CharField(default='DRAFT')  # DRAFT, SENT, PAID
+    status = CharField(default='SENT')  # SENT, PAID, OVERDUE
     created_at = DateTimeField(default=datetime.datetime.now)
 
     # Snapshots for immutability

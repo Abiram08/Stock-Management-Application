@@ -32,6 +32,27 @@ class AnalyticsService:
         return [{'date': k, 'cost': v} for k, v in sorted(trends.items())]
 
     @staticmethod
+    def get_supplier_performance():
+        # Top 5 Suppliers by Purchase Volume (INR)
+        suppliers = (ProductInward
+                    .select(ProductInward.supplier, fn.SUM(Invoice.grand_total).alias('total'))
+                    .join(Invoice, on=(ProductInward.id == Invoice.mrs_id)) # Invoices are linked to MRS, but ProductInward is a separate workflow.
+                    # Wait, ProductInward (PI) is not linked to Invoices. Invoices are linked to MRS.
+                    # For procurement (Inward), we sum up the PIItems.
+                    )
+        
+        # Procurement Volume by Supplier
+        from database.models import PIItem, Material
+        procurement = (PIItem
+                      .select(Material.supplier, fn.SUM(PIItem.quantity * PIItem.unit_price).alias('total'))
+                      .join(Material)
+                      .group_by(Material.supplier)
+                      .order_by(fn.SUM(PIItem.quantity * PIItem.unit_price).desc())
+                      .limit(5))
+        
+        return [{'name': p.material.supplier.name, 'value': float(p.total)} for p in procurement if p.material.supplier]
+
+    @staticmethod
     def get_sales_performance():
         # 1. Monthly Revenue Trend
         invoices = Invoice.select(Invoice.created_at, Invoice.grand_total)
@@ -44,7 +65,8 @@ class AnalyticsService:
         consumer_sales = (Invoice
                          .select(Invoice.client_name, fn.SUM(Invoice.grand_total).alias('total'))
                          .group_by(Invoice.client_name)
-                         .order_by(fn.SUM(Invoice.grand_total).desc()))
+                         .order_by(fn.SUM(Invoice.grand_total).desc())
+                         .limit(5))
         
         return {
             'trends': [{'date': k, 'revenue': v} for k, v in sorted(trends.items())],
@@ -66,11 +88,20 @@ class AnalyticsService:
 
     @staticmethod
     def get_invoice_stats():
-        stats = (Invoice
-                .select(Invoice.status, fn.COUNT(Invoice.id).alias('count'))
-                .group_by(Invoice.status))
+        today = datetime.date.today()
+        invoices = Invoice.select(Invoice.status, Invoice.due_date)
         
-        return [{'name': s.status, 'value': s.count} for s in stats]
+        counts = {'PAID': 0, 'SENT': 0, 'OVERDUE': 0}
+        for inv in invoices:
+            status = inv.status.upper()
+            if status != 'PAID' and inv.due_date and inv.due_date < today:
+                counts['OVERDUE'] += 1
+            elif status in counts:
+                counts[status] += 1
+            else:
+                counts[status] = counts.get(status, 0) + 1
+        
+        return [{'name': k, 'value': v} for k, v in counts.items() if v > 0 or k in ['PAID', 'SENT', 'OVERDUE']]
 
     @staticmethod
     def get_forecast():

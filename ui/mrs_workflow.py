@@ -343,14 +343,27 @@ class MRSWorkflowView(QWidget):
         self.invoice_search.setPlaceholderText("Search by invoice #, batch ID, or client name...")
         self.invoice_search.setMinimumHeight(36)
         self.invoice_search.textChanged.connect(self.filter_invoices)
-        search_layout.addWidget(self.invoice_search)
+        
+        self.invoice_status_filter = QComboBox()
+        self.invoice_status_filter.addItems(["All Invoices", "Paid", "Sent / Unpaid", "Overdue"])
+        self.invoice_status_filter.setFixedWidth(160)
+        self.invoice_status_filter.setMinimumHeight(36)
+        self.invoice_status_filter.currentIndexChanged.connect(self.filter_invoices)
+        
+        search_layout.addWidget(self.invoice_search, 1)
+        search_layout.addWidget(self.invoice_status_filter)
         layout.addLayout(search_layout)
         
         self.invoice_table = QTableWidget()
-        headers = ["Invoice #", "Batch Ref", "Date", "Total Amount", "Status", "Due Date", "Days Overdue", "Action"]
+        headers = ["S.No", "Invoice #", "Batch Ref", "Date", "Total Amount", "Status", "Due Date", "Days Overdue", "Action"]
         self.invoice_table.setColumnCount(len(headers))
         self.invoice_table.setHorizontalHeaderLabels(headers)
-        self.invoice_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        
+        header = self.invoice_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        self.invoice_table.setColumnWidth(0, 50)
+        
         self.invoice_table.verticalHeader().setVisible(False)
         self.invoice_table.verticalHeader().setDefaultSectionSize(52)
         self.invoice_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -366,19 +379,47 @@ class MRSWorkflowView(QWidget):
 
     def filter_invoices(self):
         term = self.invoice_search.text().lower()
-        filtered = [inv for inv in self.all_invoices if
-                    term in inv.invoice_no.lower() or
-                    term in inv.mrs.batch_id.lower() or
-                    term in (inv.client_name or '').lower()]
+        f_idx = self.invoice_status_filter.currentIndex()
+        
+        from datetime import date
+        today = date.today()
+        
+        filtered = []
+        for inv in self.all_invoices:
+            # Search
+            match_search = (term in inv.invoice_no.lower() or
+                            term in inv.mrs.batch_id.lower() or
+                            term in (inv.client_name or '').lower())
+            
+            # Status
+            status = inv.status.upper()
+            is_overdue = (status != "PAID" and inv.due_date and today > inv.due_date)
+            
+            match_status = True
+            if f_idx == 1: # Paid
+                match_status = status == "PAID"
+            elif f_idx == 2: # Sent / Unpaid
+                match_status = status == "SENT" and not is_overdue
+            elif f_idx == 3: # Overdue
+                match_status = is_overdue
+                
+            if match_search and match_status:
+                filtered.append(inv)
+                
         self.display_invoices(filtered)
 
     def display_invoices(self, invoices):
         self.invoice_table.setRowCount(len(invoices))
         for i, inv in enumerate(invoices):
-            self.invoice_table.setItem(i, 0, QTableWidgetItem(inv.invoice_no))
-            self.invoice_table.setItem(i, 1, QTableWidgetItem(inv.mrs.batch_id))
-            self.invoice_table.setItem(i, 2, QTableWidgetItem(inv.created_at.strftime("%Y-%m-%d")))
-            self.invoice_table.setItem(i, 3, QTableWidgetItem(f"₹{inv.grand_total:.2f}"))
+            # 0. S.No
+            sno_item = QTableWidgetItem(str(i + 1))
+            sno_item.setTextAlignment(Qt.AlignCenter)
+            self.invoice_table.setItem(i, 0, sno_item)
+
+            self.invoice_table.setItem(i, 1, QTableWidgetItem(inv.invoice_no))
+            self.invoice_table.setItem(i, 2, QTableWidgetItem(inv.mrs.batch_id))
+            self.invoice_table.setItem(i, 3, QTableWidgetItem(inv.created_at.strftime("%Y-%m-%d")))
+            self.invoice_table.setItem(i, 4, QTableWidgetItem(f"₹{inv.grand_total:.2f}"))
             
             # Status & Overdue Logic
             status = inv.status.upper()
@@ -405,15 +446,15 @@ class MRSWorkflowView(QWidget):
             status_layout = QHBoxLayout(status_widget)
             status_layout.setContentsMargins(0, 0, 0, 0)
             status_layout.addWidget(badge, alignment=Qt.AlignCenter)
-            self.invoice_table.setCellWidget(i, 4, status_widget)
+            self.invoice_table.setCellWidget(i, 5, status_widget)
 
             # Due Date
             due_str = inv.due_date.strftime("%Y-%m-%d") if inv.due_date else "N/A"
-            self.invoice_table.setItem(i, 5, QTableWidgetItem(due_str))
+            self.invoice_table.setItem(i, 6, QTableWidgetItem(due_str))
             
             # Days Overdue
             overdue_text = f"{days_overdue} days" if days_overdue > 0 else "-"
-            self.invoice_table.setItem(i, 6, QTableWidgetItem(overdue_text))
+            self.invoice_table.setItem(i, 7, QTableWidgetItem(overdue_text))
             
             # Action Button Container
             widget = QWidget()
@@ -439,7 +480,7 @@ class MRSWorkflowView(QWidget):
             layout = QHBoxLayout(widget)
             layout.setContentsMargins(0, 0, 0, 0)
             layout.addWidget(btn_view, alignment=Qt.AlignCenter)
-            self.invoice_table.setCellWidget(i, 7, widget)
+            self.invoice_table.setCellWidget(i, 8, widget)
 
     def show_invoice_dialog(self, mrs, client_name=None, client_address=None, client_gstin=None, due_date=None):
         from services.invoice_service import InvoiceService
@@ -457,7 +498,10 @@ class MRSWorkflowView(QWidget):
 
 
     def load_data(self):
-        # Only load invoice history now
+        # Auto-generate next batch ID if field is empty
+        if not self.batch_input.text().strip():
+            self.batch_input.setText(MRSService.generate_batch_id())
+            
         self.load_invoice_history()
 
     def handle_action(self, mrs):

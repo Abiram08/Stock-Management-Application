@@ -82,3 +82,102 @@ AttributeError: type object 'PySide6.QtWidgets.QPushButton' has no attribute 'Ex
 2026-03-08 18:57:03,985 - INFO - AppLogger - Application starting - running backup protocol
 2026-03-08 18:57:03,990 - INFO - AppLogger - Deleted old backup: stock_management_20260308_160850.db
 2026-03-08 18:57:03,997 - INFO - AppLogger - Successfully created database backup: stock_management_20260308_185703.db
+2026-03-08 22:04:22,771 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 73, in <module>
+    app.run()
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 69, in run
+    sys.exit(self.app.exec())
+             ^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2026-03-09 09:42:04,675 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 09:42:04,681 - INFO - AppLogger - Deleted old backup: stock_management_20260308_161120.db
+2026-03-09 09:42:04,688 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_094204.db
+2026-03-09 09:49:24,186 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 09:49:24,190 - INFO - AppLogger - Deleted old backup: stock_management_20260308_161236.db
+2026-03-09 09:49:24,193 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_094924.db
+2026-03-09 10:03:01,068 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 10:03:01,072 - INFO - AppLogger - Deleted old backup: stock_management_20260308_161710.db
+2026-03-09 10:03:01,076 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_100301.db
+2026-03-09 10:42:27,430 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "C:\Users\Nella\AppData\Local\Programs\Python\Python312\Lib\site-packages\matplotlib\backends\backend_qt.py", line 291, in enterEvent
+    def enterEvent(self, event):
+    
+KeyboardInterrupt
+
+2026-03-09 10:42:39,221 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 10:42:39,223 - INFO - AppLogger - Deleted old backup: stock_management_20260308_162600.db
+2026-03-09 10:42:39,229 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_104239.db
+2026-03-09 10:42:51,372 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 51, in handle_login
+    self.show_main_window(user)
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 56, in show_main_window
+    self.main_window = MainWindow(user)
+                       ^^^^^^^^^^^^^^^^
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 27, in __init__
+    self.setup_ui()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\main_window.py", line 204, in setup_ui
+    self.dashboard_view = AnalyticsView()
+                          ^^^^^^^^^^^^^^^
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\analytics_view.py", line 17, in __init__
+    self.load_data()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\analytics_view.py", line 265, in load_data
+    self.status_chart.draw_bar(
+TypeError: ChartWidget.draw_bar() got an unexpected keyword argument 'colors'
+
+2026-03-09 10:44:18,905 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 10:44:18,909 - INFO - AppLogger - Deleted old backup: stock_management_20260308_175437.db
+2026-03-09 10:44:18,913 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_104418.db
+2026-03-09 14:17:41,305 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 14:17:41,307 - INFO - AppLogger - Deleted old backup: stock_management_20260308_180152.db
+2026-03-09 14:17:41,310 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_141741.db
+2026-03-09 14:28:09,379 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 14:28:09,380 - INFO - AppLogger - Deleted old backup: stock_management_20260308_182401.db
+2026-03-09 14:28:09,382 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_142809.db
+2026-03-09 14:34:03,084 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 73, in <module>
+    app.run()
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 69, in run
+    sys.exit(self.app.exec())
+             ^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2026-03-09 14:34:09,405 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 14:34:09,406 - INFO - AppLogger - Deleted old backup: stock_management_20260308_185703.db
+2026-03-09 14:34:09,409 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_143409.db
+2026-03-09 14:44:37,260 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 14:44:37,263 - INFO - AppLogger - Deleted old backup: stock_management_20260309_094204.db
+2026-03-09 14:44:37,265 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_144437.db
+2026-03-09 14:53:07,623 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 14:53:07,625 - INFO - AppLogger - Deleted old backup: stock_management_20260309_094924.db
+2026-03-09 14:53:07,628 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_145307.db
+2026-03-09 14:53:16,538 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\inventory_management.py", line 145, in _on_data_loaded
+    self.filter_data()
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\inventory_management.py", line 312, in filter_data
+    self.display_data(filtered)
+  File "Z:\Projects\Working\Desktop-app-Stock\ui\inventory_management.py", line 159, in display_data
+    sno_item.setStyleSheet("color: #64748B; font-weight: bold;")
+    ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'PySide6.QtWidgets.QTableWidgetItem' object has no attribute 'setStyleSheet'
+
+2026-03-09 14:56:28,736 - CRITICAL - AppLogger - Uncaught exception:
+Traceback (most recent call last):
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 73, in <module>
+    app.run()
+  File "Z:\Projects\Working\Desktop-app-Stock\main.py", line 69, in run
+    sys.exit(self.app.exec())
+             ^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+2026-03-09 14:56:35,352 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 14:56:35,354 - INFO - AppLogger - Deleted old backup: stock_management_20260309_100301.db
+2026-03-09 14:56:35,356 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_145635.db
+2026-03-09 15:09:01,670 - INFO - AppLogger - Application starting - running backup protocol
+2026-03-09 15:09:01,672 - INFO - AppLogger - Deleted old backup: stock_management_20260309_104239.db
+2026-03-09 15:09:01,673 - INFO - AppLogger - Successfully created database backup: stock_management_20260309_150901.db

@@ -36,14 +36,15 @@ class ProcurementService:
         pi = ProductInward.get_by_id(pi_id)
         pi.admin = admin_id
         pi.status = status
-        pi.approval_remarks = remarks
-        pi.approved_at = datetime.datetime.now()
+        pi.approval_remarks = remarks or "No remarks"
+        if status in ['APPROVED', 'REJECTED']:
+            pi.approved_at = datetime.datetime.now()
         pi.save()
         AuditService.log('PI_STATUS_UPDATED', details={'pi_id': pi.id, 'status': status, 'admin_id': admin_id})
         return pi
 
     @staticmethod
-    def process_inward(pi_id, performed_by_id, rating):
+    def process_inward(pi_id, performed_by_id):
         with db.atomic():
             pi = ProductInward.get_by_id(pi_id)
             if pi.status != 'APPROVED':
@@ -62,19 +63,40 @@ class ProcurementService:
                     performed_by=performed_by_id
                 )
 
-            # Update Supplier Rating
-            supplier = pi.supplier
-            new_count = supplier.rating_count + 1
-            new_rating = ((supplier.rating * supplier.rating_count) + rating) / new_count
-            supplier.rating = new_rating
-            supplier.rating_count = new_count
-            supplier.save()
-
             # Mark PI as completed
             pi.status = 'COMPLETED'
             pi.completed_at = datetime.datetime.now()
             pi.save()
-            AuditService.log('PI_INWARD_PROCESSED', details={'pi_id': pi.id, 'supplier_rating': rating})
+            AuditService.log('PI_INWARD_PROCESSED', details={'pi_id': pi.id})
+            return pi
+
+    @staticmethod
+    def reverse_inward(pi_id, performed_by_id):
+        """
+        Reverses a completed inward entry: 
+        1. Deducts stock
+        2. Status goes back to APPROVED
+        3. Deletes the INWARD transactions associated with this PI
+        """
+        with db.atomic():
+            pi = ProductInward.get_by_id(pi_id)
+            if pi.status != 'COMPLETED':
+                raise ValueError("Only completed PIs can be reversed")
+
+            # 1. Revert stock
+            for item in pi.items:
+                Material.update(quantity=Material.quantity - item.quantity,
+                              updated_at=datetime.datetime.now()).where(Material.id == item.material.id).execute()
+            
+            # 2. Status back to APPROVED
+            pi.status = 'APPROVED'
+            pi.completed_at = None
+            pi.save()
+
+            # 3. Delete INWARD transactions for this PI
+            Transaction.delete().where(Transaction.type == 'INWARD', Transaction.related_id == pi.id).execute()
+
+            AuditService.log('PI_INWARD_REVERSED', details={'pi_id': pi.id, 'reversed_by': performed_by_id})
             return pi
 
     @staticmethod

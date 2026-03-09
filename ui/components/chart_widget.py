@@ -69,9 +69,11 @@ class ChartWidget(QWidget):
         plt.setp(self.canvas.ax.get_xticklabels(), rotation=45, ha='right')
         
         # Add headroom for tooltips
-        if values:
+        if values and max(values) > 0:
             max_val = max(values)
             self.canvas.ax.set_ylim(0, max_val * 1.25)
+        elif values:
+            self.canvas.ax.set_ylim(0, 1)
         
         for spine in self.canvas.ax.spines.values():
             spine.set_visible(False)
@@ -101,9 +103,11 @@ class ChartWidget(QWidget):
         plt.setp(self.canvas.ax.get_xticklabels(), rotation=45, ha='right')
         
         # Add headroom for tooltips
-        if y:
+        if y and max(y) > 0:
             max_val = max(y)
             self.canvas.ax.set_ylim(0, max_val * 1.25)
+        elif y:
+            self.canvas.ax.set_ylim(0, 1)
 
         for spine in self.canvas.ax.spines.values():
             spine.set_visible(False)

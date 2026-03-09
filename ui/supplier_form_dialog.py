@@ -126,8 +126,7 @@ class SupplierFormDialog(QDialog):
                         contact_person=contact,
                         phone=phone,
                         gst_no=gst.upper() if gst else None,
-                        material_categories=categories,
-                        rating=5.0 # Initial rating for new partner
+                        material_categories=categories
                     )
             relay.data_changed.emit()
             self.accept()

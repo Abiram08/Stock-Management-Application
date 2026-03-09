@@ -64,7 +64,13 @@ class InventoryManagementView(QWidget):
         self.btn_export.setProperty("class", "SecondaryButton")
         self.btn_export.clicked.connect(lambda: ExportService.export_table_to_csv(self.table, self, "inventory_data.csv"))
         
+        self.status_filter = QComboBox()
+        self.status_filter.addItems(["All Statuses", "In Stock", "Low Stock", "Dead Stock"])
+        self.status_filter.setFixedWidth(140)
+        self.status_filter.currentIndexChanged.connect(self.filter_data)
+        
         actions_layout.addWidget(self.search_input)
+        actions_layout.addWidget(self.status_filter)
         actions_layout.addWidget(self.btn_add_material)
         actions_layout.addWidget(self.btn_export)
         actions_layout.addWidget(self.btn_abc)
@@ -76,17 +82,19 @@ class InventoryManagementView(QWidget):
         
         # Table Section
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
+        self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels([
-            "Material Details", "Supplier", "Live Stock", "Status", "Actions"
+            "S.No", "Material Details", "Supplier", "Live Stock", "Status", "Actions"
         ])
         
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents) # Material Details
-        header.setSectionResizeMode(4, QHeaderView.Fixed) # Actions
+        header.setSectionResizeMode(0, QHeaderView.Fixed) # S.No
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents) # Material Details
+        header.setSectionResizeMode(5, QHeaderView.Fixed) # Actions
         
-        self.table.setColumnWidth(4, 160) # Actions column
+        self.table.setColumnWidth(0, 60) # S.No
+        self.table.setColumnWidth(5, 170) # Actions column
         
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(60) # Standard premium height
@@ -151,6 +159,11 @@ class InventoryManagementView(QWidget):
     def display_data(self, materials_list):
         self.table.setRowCount(len(materials_list))
         for i, m in enumerate(materials_list):
+            # 0. S.No
+            sno_item = QTableWidgetItem(str(i + 1))
+            sno_item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(i, 0, sno_item)
+
             # 1. Details (Name + ABC Category + Cost)
             detail_widget = QWidget()
             detail_layout = QVBoxLayout(detail_widget)
@@ -180,18 +193,18 @@ class InventoryManagementView(QWidget):
             cost_label.setStyleSheet("color: #64748B; font-size: 11px;")
             detail_layout.addWidget(cost_label)
             
-            self.table.setCellWidget(i, 0, detail_widget)
+            self.table.setCellWidget(i, 1, detail_widget)
             
             # 2. Supplier
             supplier_name = m.supplier.name if m.supplier else "N/A"
             supplier_item = QTableWidgetItem(supplier_name)
             supplier_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 1, supplier_item)
+            self.table.setItem(i, 2, supplier_item)
             
             # 3. Live Stock
             stock_item = QTableWidgetItem(f"{m.quantity} {m.unit}")
             stock_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 2, stock_item)
+            self.table.setItem(i, 3, stock_item)
             
             # 4. Status (Wrapped for centering)
             status_type = 'critical' if m.quantity == 0 else 'warning' if m.quantity <= m.min_stock else 'success'
@@ -203,7 +216,7 @@ class InventoryManagementView(QWidget):
             status_layout.setContentsMargins(0, 0, 0, 0)
             status_layout.setAlignment(Qt.AlignCenter)
             status_layout.addWidget(status_badge)
-            self.table.setCellWidget(i, 3, status_container)
+            self.table.setCellWidget(i, 4, status_container)
             
             # 5. Action
             btn_details = QPushButton("ⓘ")
@@ -246,7 +259,7 @@ class InventoryManagementView(QWidget):
                 }
             """)
             btn_edit.clicked.connect(lambda checked=False, mat=m: self.show_edit_material(mat))
-
+ 
             btn_del = QPushButton("✕")
             btn_del.setFixedSize(32, 32)
             btn_del.setCursor(Qt.PointingHandCursor)
@@ -267,17 +280,16 @@ class InventoryManagementView(QWidget):
                 }
             """)
             btn_del.clicked.connect(lambda checked=False, mid=m.id: self.confirm_delete_material(mid))
-
+ 
             action_widget = QWidget()
             action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(0, 0, 10, 0) # Added right margin to prevent clipping
+            action_layout.setContentsMargins(0, 0, 10, 0)
             action_layout.setSpacing(12)
             action_layout.addStretch()
             action_layout.addWidget(btn_details)
             action_layout.addWidget(btn_edit)
             action_layout.addWidget(btn_del)
-            # action_layout.addStretch() # Removed trailing stretch to favor left-leaning/centered alignment
-            self.table.setCellWidget(i, 4, action_widget)
+            self.table.setCellWidget(i, 5, action_widget)
 
     def show_add_material(self):
         from ui.material_form_dialog import MaterialFormDialog
@@ -301,7 +313,25 @@ class InventoryManagementView(QWidget):
 
     def filter_data(self):
         term = self.search_input.text().lower()
-        filtered = [m for m in self.materials if term in m.name.lower()]
+        status_idx = self.status_filter.currentIndex()
+        
+        filtered = []
+        for m in self.materials:
+            # Search match
+            match_search = term in m.name.lower() or term in (m.code or '').lower()
+            
+            # Status match
+            match_status = True
+            if status_idx == 1: # In Stock
+                match_status = m.quantity > m.min_stock
+            elif status_idx == 2: # Low Stock
+                match_status = 0 < m.quantity <= m.min_stock
+            elif status_idx == 3: # Dead Stock
+                match_status = m.quantity == 0
+                
+            if match_search and match_status:
+                filtered.append(m)
+                
         self.display_data(filtered)
 
 

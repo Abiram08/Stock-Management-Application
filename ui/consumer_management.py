@@ -159,15 +159,17 @@ class ConsumerManagementView(QWidget):
         
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
+        self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels([
-            "Company Name", "Contact Person", "Mobile", "GST No", "Location", "Actions"
+            "S.No", "Company Name", "Contact Person", "Mobile", "GST No", "Location", "Actions"
         ])
         
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
-        header.setSectionResizeMode(5, QHeaderView.Fixed)
-        self.table.setColumnWidth(5, 180)
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.Fixed)
+        self.table.setColumnWidth(0, 50)
+        self.table.setColumnWidth(6, 180)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(60) 
         self.table.setShowGrid(False)
@@ -199,11 +201,16 @@ class ConsumerManagementView(QWidget):
         self.table.setRowCount(len(consumers))
         
         for i, c in enumerate(consumers):
-            self.table.setItem(i, 0, QTableWidgetItem(c.company_name))
-            self.table.setItem(i, 1, QTableWidgetItem(c.contact_person))
-            self.table.setItem(i, 2, QTableWidgetItem(c.phone))
-            self.table.setItem(i, 3, QTableWidgetItem(c.gst_no or "N/A"))
-            self.table.setItem(i, 4, QTableWidgetItem(c.location or "N/A"))
+            # 0. S.No
+            sno_item = QTableWidgetItem(str(i + 1))
+            sno_item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(i, 0, sno_item)
+
+            self.table.setItem(i, 1, QTableWidgetItem(c.company_name))
+            self.table.setItem(i, 2, QTableWidgetItem(c.contact_person))
+            self.table.setItem(i, 3, QTableWidgetItem(c.phone))
+            self.table.setItem(i, 4, QTableWidgetItem(c.gst_no or "N/A"))
+            self.table.setItem(i, 5, QTableWidgetItem(c.location or "N/A"))
             
             btn_edit = QPushButton("✎")
             btn_edit.setFixedSize(32, 32)
@@ -254,7 +261,7 @@ class ConsumerManagementView(QWidget):
             btn_layout.setAlignment(Qt.AlignCenter)
             btn_layout.addWidget(btn_edit)
             btn_layout.addWidget(btn_delete)
-            self.table.setCellWidget(i, 5, container)
+            self.table.setCellWidget(i, 6, container)
 
     def confirm_delete(self, consumer):
         reply = QMessageBox.question(self, "Confirm Delete", 

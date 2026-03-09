@@ -5,7 +5,7 @@ class InvoiceDialog(QtWidgets.QDialog):
     def __init__(self, invoice, parent=None):
         super().__init__(parent)
         self.invoice = invoice
-        self.setWindowTitle(f"Invoice Preview - {invoice.invoice_no}")
+        self.setWindowTitle(f"Invoice - {invoice.invoice_no}")
         self.setMinimumSize(900, 800)
         self.setup_ui()
 
@@ -19,7 +19,7 @@ class InvoiceDialog(QtWidgets.QDialog):
         branding_box.setStyleSheet("background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;")
         branding_layout = QtWidgets.QHBoxLayout(branding_box)
         
-        title_label = QtWidgets.QLabel("INVOICE PREVIEW")
+        title_label = QtWidgets.QLabel("INVOICE GENERATION")
         title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #000000;")
         
         toolbar = QtWidgets.QHBoxLayout()
@@ -110,7 +110,7 @@ class InvoiceDialog(QtWidgets.QDialog):
         if self.invoice.company_logo_data:
             logo_html = f'<div class="logo-container"><img class="logo-img" src="{self.invoice.company_logo_data}"></div>'
         else:
-            # Final fallback to CompanyProfile for very old invoices (should be rare now after lock script)
+            # Final fallback
             from database.models import CompanyProfile
             profile = CompanyProfile.get_or_none()
             if profile and profile.logo_path and os.path.exists(profile.logo_path):
@@ -151,26 +151,22 @@ class InvoiceDialog(QtWidgets.QDialog):
                     text-align: right; 
                 }}
 
-                .title-section {{ text-align: center; margin: 20px 0; }}
-                .invoice-title {{ font-size: 28pt; font-weight: bold; color: #1e293b; letter-spacing: 2px; }}
+                .title-section {{ text-align: left; margin: 20px 0 10px 0; }}
+                .invoice-title {{ font-size: 32pt; font-weight: 900; color: #0f172a; }}
                 
-                /* Status Bar */
+                /* Status Badge */
                 .status-bg {{ 
-                    width: 100%; 
-                    background-color: #F8FAFC; 
-                    padding: 8px 0; 
-                    text-align: center; 
+                    display: inline-block;
+                    padding: 4px 12px; 
+                    border-radius: 4px;
+                    font-weight: 800;
                     margin-bottom: 30px; 
-                    border: 1px solid #E2E8F0;
+                    text-transform: uppercase;
+                    font-size: 10pt;
                 }}
-                .status-text {{ 
-                    font-weight: bold; 
-                    font-size: 11pt; 
-                    color: #475569; 
-                    text-transform: uppercase; 
-                }}
-                .status-paid-bg {{ background-color: #F8FAFC; border-color: #1E293B; }}
-                .status-paid-text {{ color: #000000; }}
+                .status-sent {{ background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }}
+                .status-paid {{ background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }}
+                .status-overdue {{ background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }}
 
                 /* Info Boxes */
                 .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 40px; }}
@@ -222,10 +218,9 @@ class InvoiceDialog(QtWidgets.QDialog):
 
                 <div class="title-section">
                     <div class="invoice-title">INVOICE</div>
-                </div>
-
-                <div class="status-bg {'status-paid-bg' if self.invoice.status.upper() == 'PAID' else ''}">
-                    <span class="status-text {'status-paid-text' if self.invoice.status.upper() == 'PAID' else ''}">{self.invoice.status}</span>
+                    <div class="status-bg {'status-paid' if self.invoice.status.upper() == 'PAID' else 'status-overdue' if days_overdue > 0 else 'status-sent'}">
+                        {self.invoice.status if (days_overdue == 0 or self.invoice.status == 'PAID') else 'OVERDUE'}
+                    </div>
                 </div>
 
                 <!-- Info Table -->
@@ -316,8 +311,13 @@ class InvoiceDialog(QtWidgets.QDialog):
 
     def save_invoice(self):
         try:
+            # Create a unique, descriptive filename: INV_No_BATCH_Client.pdf
+            client_slug = "".join([c if c.isalnum() else "_" for c in (self.invoice.client_name or "Walkin")])
+            batch_slug = "".join([c if c.isalnum() else "_" for c in (self.invoice.mrs.batch_id or "NOBATCH")])
+            default_name = f"{self.invoice.invoice_no}_{batch_slug}_{client_slug}.pdf"
+            
             path, _ = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Save Invoice", f"{self.invoice.invoice_no}.pdf", "PDF Files (*.pdf)"
+                self, "Save Invoice", default_name, "PDF Files (*.pdf)"
             )
             if not path: return
 
